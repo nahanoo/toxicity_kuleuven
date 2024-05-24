@@ -6,11 +6,11 @@ from matplotlib import pyplot as plt
 class Salmonella:
     def __init__(self):
         # max. growth rate
-        self.r = 0.4
+        self.r = 0.3
         # monod constant
-        self.Km = 10
+        self.Km = 1.5
         # yield
-        self.Y = 0.025
+        self.Y = 0.2
         # carrying capacity
         self.K = 0.8
         # energy investment
@@ -24,17 +24,17 @@ class Salmonella:
         # chloramphenicol death rate
         self.u = 0.2
         # population density
-        self.N = np.array([0.05])
+        self.N = np.array([1])
 
 
 class E_coli:
     def __init__(self):
         # max. growth rate
-        self.r = 0.45
+        self.r = 0.4
         # monod constant
-        self.Km = 10
+        self.Km = 1.5
         # yield
-        self.Y = 0.025
+        self.Y = 0.2
         # carrying capacity
         self.K = 1
         # energy investment
@@ -49,7 +49,7 @@ class E_coli:
         self.u = 0.2
 
         # population density
-        self.N = np.array([0.05])
+        self.N = np.array([1])
 
 
 class Experiment:
@@ -61,7 +61,7 @@ class Experiment:
         # transfer period
         self.transfer_period = 24
         # media concentration
-        self.M = 1
+        self.M = 10
         # cefotaxime concentration
         self.M_cefo = 1
         # chloramphenicol concentration
@@ -71,7 +71,7 @@ class Experiment:
         # array for cefotaxime concentration
         self.cefo = np.array([self.M_cefo])
         # array for chlorampheicol concentration
-        self.chloram = np.arrya([self.M_chloram])
+        self.chloram = np.array([self.M_chloram])
         # array for time
         self.time = np.array([0])
         # create bugs
@@ -98,13 +98,24 @@ class Experiment:
 
     def e_protects_s(self, y, t):
         e, s, R, T = y[0], y[1], y[2], y[3]
-        je = self.e.r * R / (R + self.e.K)
-        js = self.s.r * R / (R + self.s.K)
+        je = self.e.r * R / (R + self.e.Km)
+        js = self.s.r * R / (R + self.s.Km)
         us = self.s.u * T / (T + self.s.KT)
         dE = ((1 - self.e.f) * je) * e
-        dS = js * s - us
-        dR = -je * e / self.e.Y - js * s / self.s.Y
+        dS = js * s - us * s
+        dR = - je * e / self.e.Y - js * s / self.s.Y
         dT = -T * (self.e.f * self.e.a * je + self.e.j) * e
+        return dE, dS, dR, dT
+
+    def s_protects_e(self, y, t):
+        e, s, R, T = y[0], y[1], y[2], y[3]
+        je = self.e.r * R / (R + self.e.K)
+        js = self.s.r * R / (R + self.s.K)
+        ue = self.e.u * T / (T + self.e.KT)
+        dE = je * e - ue * e
+        dS = ((1 - self.s.f) * js) * s
+        dR = - je * e / self.e.Y - js * s / self.s.Y
+        dT = -T * (self.s.f * self.s.a * js + self.s.j) * s
         return dE, dS, dR, dT
 
     def simulate_experiment(self, model):
@@ -120,7 +131,18 @@ class Experiment:
             # add population densities
             if model == "e_protects_s":
                 Y = odeint(
-                    self.logistic, [self.e.N[-1], self.s.N[-1], self.M, self.chloram], t
+                    self.e_protects_s,
+                    [self.e.N[-1], self.s.N[-1], self.M, self.M_chloram],
+                    t,
+                )
+                self.R = np.concatenate((self.R, Y[:, 2]))
+                self.chloram = np.concatenate((self.chloram, Y[:, 3]))
+
+            if model == "s_protects_e":
+                Y = odeint(
+                    self.s_protects_e,
+                    [self.e.N[-1], self.s.N[-1], self.M, self.M_chloram],
+                    t,
                 )
                 self.R = np.concatenate((self.R, Y[:, 2]))
                 self.chloram = np.concatenate((self.chloram, Y[:, 3]))
@@ -150,3 +172,5 @@ def main(model):
 
 
 main("e_protects_s")
+main("s_protects_e")
+main("consumer_resource")
