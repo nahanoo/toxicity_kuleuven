@@ -1,2 +1,2 @@
-# toxicity_kuleuven
-Code for modeling of the toxicity can increase co-existence project.
+# Model
+This repository hosts the code for the collaboration the antibiotic two-sided cross-protection.
