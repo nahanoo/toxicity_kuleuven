@@ -13,6 +13,16 @@ class Salmonella:
         self.Y = 0.025
         # carrying capacity
         self.K = 0.8
+        # energy investment
+        self.f = 0.1
+        # toxin monod constance
+        self.KT = 1
+        # toxin degradation rate
+        self.a = 15
+        # passive toxin uptake rate
+        self.j = 1e-3
+        # chloramphenicol death rate
+        self.u = 0.2
         # population density
         self.N = np.array([0.05])
 
@@ -27,6 +37,17 @@ class E_coli:
         self.Y = 0.025
         # carrying capacity
         self.K = 1
+        # energy investment
+        self.f = 0.1
+        # toxin monod constance
+        self.KT = 1
+        # toxin degradation rate
+        self.a = 15
+        # passive toxin uptake rate
+        self.j = 1e-3
+        # cefotaime death rate
+        self.u = 0.2
+
         # population density
         self.N = np.array([0.05])
 
@@ -40,9 +61,17 @@ class Experiment:
         # transfer period
         self.transfer_period = 24
         # media concentration
-        self.M = 40
+        self.M = 1
+        # cefotaxime concentration
+        self.M_cefo = 1
+        # chloramphenicol concentration
+        self.M_chloram = 1
         # array for resource concentration
         self.R = np.array([self.M])
+        # array for cefotaxime concentration
+        self.cefo = np.array([self.M_cefo])
+        # array for chlorampheicol concentration
+        self.chloram = np.arrya([self.M_chloram])
         # array for time
         self.time = np.array([0])
         # create bugs
@@ -67,6 +96,17 @@ class Experiment:
         dS = self.s.r * (self.s.K - s) / self.s.K
         return dE, dS
 
+    def e_protects_s(self, y, t):
+        e, s, R, T = y[0], y[1], y[2], y[3]
+        je = self.e.r * R / (R + self.e.K)
+        js = self.s.r * R / (R + self.s.K)
+        us = self.s.u * T / (T + self.s.KT)
+        dE = ((1 - self.e.f) * je) * e
+        dS = js * s - us
+        dR = -je * e / self.e.Y - js * s / self.s.Y
+        dT = -T * (self.e.f * self.e.a * je + self.e.j) * e
+        return dE, dS, dR, dT
+
     def simulate_experiment(self, model):
         # function to simulate transfers
         for i in range(self.total_transfers):
@@ -78,6 +118,13 @@ class Experiment:
             if model == "logistic":
                 Y = odeint(self.logistic, [self.e.N[-1], self.s.N[-1]], t)
             # add population densities
+            if model == "e_protects_s":
+                Y = odeint(
+                    self.logistic, [self.e.N[-1], self.s.N[-1], self.M, self.chloram], t
+                )
+                self.R = np.concatenate((self.R, Y[:, 2]))
+                self.chloram = np.concatenate((self.chloram, Y[:, 3]))
+
             self.e.N = np.concatenate((self.e.N, Y[:, 0]))
             self.s.N = np.concatenate((self.s.N, Y[:, 1]))
 
@@ -102,5 +149,4 @@ def main(model):
     exp.plotting()
 
 
-main("logistic")
-main("consumer_resource")
+main("e_protects_s")
