@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 class Salmonella:
     def __init__(self):
         # max. growth rate
-        self.r = 0.3
+        self.r = 0.37
         # monod constant
         self.Km = 1.5
         # yield
@@ -18,13 +18,13 @@ class Salmonella:
         # toxin monod constance
         self.KT = 1
         # toxin degradation rate
-        self.a = 80
+        self.a = 800
         # passive toxin uptake rate
         self.j = 1e-3
         # chloram death rate, MIC=0.6
-        self.u = 0.6
+        self.u = 0.8
         # population density
-        self.N = np.array([1])
+        self.N = np.array([0.05])
 
 
 class E_coli:
@@ -32,7 +32,7 @@ class E_coli:
         # max. growth rate
         self.r = 0.4
         # monod constant
-        self.Km = 1
+        self.Km = 1.5
         # yield
         self.Y = 0.2
         # carrying capacity
@@ -42,22 +42,22 @@ class E_coli:
         # toxin monod constance
         self.KT = 1
         # toxin degradation rate
-        self.a = 80
+        self.a = 800
         # passive toxin uptake rate
         self.j = 1e-3
         # cefo death rate, mic = 0.7
-        self.u = 0.7
+        self.u = 0.8
 
         # population density
-        self.N = np.array([1])
+        self.N = np.array([0.05])
 
 
 class Experiment:
     def __init__(self):
         # transfers
-        self.total_transfers = 20
+        self.total_transfers = 8
         # dilution factor
-        self.dilution_factor = 24
+        self.dilution_factor = 100
         # transfer period
         self.transfer_period = 24
         # media concentration
@@ -293,8 +293,7 @@ def salmonella_susceptible():
 
 #e_coli_susceptible()
 #salmonella_susceptible()
-
 #consumer_resource()
-s_protects_e()
+#s_protects_e()
 #e_protects_s()
-two_sided()
+#two_sided()
