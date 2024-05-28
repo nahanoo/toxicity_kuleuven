@@ -16,13 +16,13 @@ class Salmonella:
         # energy investment
         self.f = 0.1
         # toxin monod constance
-        self.KT = 1
+        self.KT = 0.25e-3 / 4
         # toxin degradation rate
-        self.a = 800
+        self.a = 1
         # passive toxin uptake rate
-        self.j = 1e-3
+        self.j = 0.1
         # chloram death rate, MIC=0.6
-        self.u = 0.8
+        self.u = 0.41
         # population density
         self.N = np.array([0.05])
 
@@ -40,18 +40,19 @@ class E_coli:
         # energy investment
         self.f = 0.1
         # toxin monod constance
-        self.KT = 1
+        self.KT = 16e-3 / 4
         # toxin degradation rate
-        self.a = 800
+        self.a = 1
         # passive toxin uptake rate
-        self.j = 1e-3
+        self.j = 0.1
         # cefo death rate, mic = 0.7
-        self.u = 0.8
+        self.u = 0.44
 
         # population density
         self.N = np.array([0.05])
 
 
+# eq.e_min_death_rate()
 class Experiment:
     def __init__(self):
         # transfers
@@ -63,9 +64,9 @@ class Experiment:
         # media concentration
         self.M = 10
         # cefotaxime concentration
-        self.M_cefo = 1
+        self.M_cefo = 16e-3
         # chloramphenicol concentration
-        self.M_chloram = 1
+        self.M_chloram = 0.25e-3
         # array for resource concentration
         self.R = np.array([self.M])
         # array for cefotaxime concentration
@@ -101,7 +102,10 @@ class Experiment:
         je = self.e.r * R / (R + self.e.Km)
         ue = self.e.u * self.M_cefo / (self.M_cefo + self.e.KT)
         dR = -je * e / self.e.Y
-        dE = je * e - ue * e
+        if t < 2:
+            dE = je * e
+        else:
+            dE = je * e - ue * e
         return dE, dR
 
     def s_toxin(self, y, t):
@@ -128,10 +132,16 @@ class Experiment:
         je = self.e.r * R / (R + self.e.Km)
         js = self.s.r * R / (R + self.s.Km)
         ue = self.e.u * cefo / (cefo + self.e.KT)
-        dE = je * e - ue * e
+        if t < 2:
+            dE = je * e
+        else:
+            dE = je * e - ue * e
         dS = ((1 - self.s.f) * js) * s
         dR = -je * e / self.e.Y - js * s / self.s.Y
-        dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j) * s
+        if t > 2:
+            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j) * s
+        else:
+            dCefo = 0
         return dE, dS, dR, dCefo
 
     def two_sided_protection(self, y, t):
@@ -140,10 +150,16 @@ class Experiment:
         js = self.s.r * R / (R + self.s.Km)
         ue = self.e.u * cefo / (cefo + self.e.KT)
         us = self.s.u * chloram / (chloram + self.s.KT)
-        dE = je * e - ue * e
+        if t < 2:
+            dE = je * e
+        else:
+            dE = je * e - ue * e
         dS = js * s - us * s
         dR = -je * e / self.e.Y - js * s / self.s.Y
-        dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j) * s
+        if t > 2:
+            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j) * s
+        else:
+            dCefo = 0
         dChloram = -chloram * (self.e.f * self.e.a * je + self.e.j) * e
         return dE, dS, dR, dCefo, dChloram
 
@@ -270,7 +286,7 @@ def two_sided():
     exp = Experiment()
     exp.simulate_experiment("two_sided")
     exp.plot_N()
-    #exp.plot_cefo_chloram()
+    # exp.plot_cefo_chloram()
 
 
 def consumer_resource():
@@ -291,9 +307,9 @@ def salmonella_susceptible():
     exp.plot_salmonella()
 
 
-#e_coli_susceptible()
-#salmonella_susceptible()
-#consumer_resource()
-#s_protects_e()
-#e_protects_s()
-#two_sided()
+# e_coli_susceptible()
+# salmonella_susceptible()
+# consumer_resource()
+# s_protects_e()
+# e_protects_s()
+# two_sided()
