@@ -6,9 +6,9 @@ from matplotlib import pyplot as plt
 class Salmonella:
     def __init__(self):
         # max. growth rate
-        self.r = 0.37
+        self.r = 0.5
         # monod constant
-        self.Km = 1.5
+        self.Km = 10
         # yield
         self.Y = 0.2
         # carrying capacity
@@ -16,23 +16,23 @@ class Salmonella:
         # energy investment
         self.f = 0.1
         # toxin monod constance
-        self.KT = 0.25e-3 / 4
+        self.KT = 16e-3 / 8
         # toxin degradation rate
-        self.a = 1
+        self.a = 500
         # passive toxin uptake rate
         self.j = 0.1
         # chloram death rate, MIC=0.6
-        self.u = 0.41
+        self.u = 0.33
         # population density
-        self.N = np.array([0.05])
+        self.N = np.array([0.1])
 
 
 class E_coli:
     def __init__(self):
         # max. growth rate
-        self.r = 0.4
+        self.r = 0.55
         # monod constant
-        self.Km = 1.5
+        self.Km = 10
         # yield
         self.Y = 0.2
         # carrying capacity
@@ -40,16 +40,16 @@ class E_coli:
         # energy investment
         self.f = 0.1
         # toxin monod constance
-        self.KT = 16e-3 / 4
+        self.KT = 0.25e-3 / 8
         # toxin degradation rate
-        self.a = 1
+        self.a = 100
         # passive toxin uptake rate
         self.j = 0.1
         # cefo death rate, mic = 0.7
-        self.u = 0.44
+        self.u = 0.48
 
         # population density
-        self.N = np.array([0.05])
+        self.N = np.array([0.1])
 
 
 # eq.e_min_death_rate()
@@ -64,9 +64,9 @@ class Experiment:
         # media concentration
         self.M = 10
         # cefotaxime concentration
-        self.M_cefo = 16e-3
+        self.M_cefo = 0.25e-3
         # chloramphenicol concentration
-        self.M_chloram = 0.25e-3
+        self.M_chloram = 16e-3
         # array for resource concentration
         self.R = np.array([self.M])
         # array for cefotaxime concentration
@@ -98,37 +98,38 @@ class Experiment:
         return dE, dS
 
     def e_toxin(self, y, t):
-        e, R = y
+        e, R, cefo = y
         je = self.e.r * R / (R + self.e.Km)
         ue = self.e.u * self.M_cefo / (self.M_cefo + self.e.KT)
         dR = -je * e / self.e.Y
         if t < 2:
             dE = je * e
+            dCefo = 0
         else:
             dE = je * e - ue * e
-        return dE, dR
+            dCefo = -cefo * self.e.j * e
+        return dE, dR, dCefo
 
     def s_toxin(self, y, t):
-        s, R = y
-        js = self.s.r * R / (R + self.s.Km)
-        us = self.s.u * self.M_chloram / (self.M_chloram + self.s.KT)
+        s, R, chloram = y
+        js = self.s.r * R / (R + self.s.Km) * self.s.KT / (self.s.KT + chloram)
         dR = -js * s / self.s.Y
-        dS = js * s - us * s
-        return dS, dR
+        dS = js * s
+        dChloram = -chloram * self.s.j * s
+        return dS, dR, dChloram
 
     def e_protects_s(self, y, t):
         e, s, R, chloram = y
         je = self.e.r * R / (R + self.e.Km)
-        js = self.s.r * R / (R + self.s.Km)
-        us = self.s.u * chloram / (chloram + self.s.KT)
+        js = self.s.r * R / (R + self.s.Km) * self.s.KT / (self.s.KT + chloram)
         dE = ((1 - self.e.f) * je) * e
-        dS = js * s - us * s
+        dS = js * s
         dR = -je * e / self.e.Y - js * s / self.s.Y
-        dChloram = -chloram * (self.e.f * self.e.a * je + self.e.j) * e
+        dChloram = -chloram * (self.e.f * self.e.a * je + self.e.j + self.s.j) * e
         return dE, dS, dR, dChloram
 
     def s_protects_e(self, y, t):
-        e, s, R, cefo = y[0], y[1], y[2], y[3]
+        e, s, R, cefo = y
         je = self.e.r * R / (R + self.e.Km)
         js = self.s.r * R / (R + self.s.Km)
         ue = self.e.u * cefo / (cefo + self.e.KT)
@@ -139,7 +140,7 @@ class Experiment:
         dS = ((1 - self.s.f) * js) * s
         dR = -je * e / self.e.Y - js * s / self.s.Y
         if t > 2:
-            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j) * s
+            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j + self.e.j) * s
         else:
             dCefo = 0
         return dE, dS, dR, dCefo
@@ -147,26 +148,26 @@ class Experiment:
     def two_sided_protection(self, y, t):
         e, s, R, cefo, chloram = y
         je = self.e.r * R / (R + self.e.Km)
-        js = self.s.r * R / (R + self.s.Km)
+        js = self.s.r * R / (R + self.s.Km) * self.s.KT / (self.s.KT + chloram)
         ue = self.e.u * cefo / (cefo + self.e.KT)
-        us = self.s.u * chloram / (chloram + self.s.KT)
         if t < 2:
             dE = je * e
         else:
             dE = je * e - ue * e
-        dS = js * s - us * s
+        dS = js * s
         dR = -je * e / self.e.Y - js * s / self.s.Y
         if t > 2:
-            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j) * s
+            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j + self.e.j) * s
         else:
             dCefo = 0
-        dChloram = -chloram * (self.e.f * self.e.a * je + self.e.j) * e
+        dChloram = -chloram * (self.e.f * self.e.a * je + self.e.j + self.s.j) * e
         return dE, dS, dR, dCefo, dChloram
 
     def simulate_experiment(self, model):
         # function to simulate transfers
         for i in range(self.total_transfers):
-            t = np.linspace(0, self.transfer_period, 100)
+            steps = 1000
+            t = np.linspace(0, self.transfer_period, steps)
             if model == "consumer_resource":
                 Y = odeint(self.cr, [self.e.N[-1], self.s.N[-1], self.M], t)
                 self.R = np.concatenate((self.R, Y[:, 2]))
@@ -210,20 +211,22 @@ class Experiment:
             if model == "e_toxin":
                 Y = odeint(
                     self.e_toxin,
-                    [self.e.N[-1], self.M],
+                    [self.e.N[-1], self.M, self.M_cefo],
                     t,
                 )
                 self.e.N = np.concatenate((self.e.N, Y[:, 0]))
                 self.R = np.concatenate((self.R, Y[:, 1]))
+                self.cefo = np.concatenate((self.cefo, Y[:, 2]))
 
             if model == "s_toxin":
                 Y = odeint(
                     self.s_toxin,
-                    [self.s.N[-1], self.M],
+                    [self.s.N[-1], self.M, self.M_chloram],
                     t,
                 )
                 self.s.N = np.concatenate((self.s.N, Y[:, 0]))
                 self.R = np.concatenate((self.R, Y[:, 1]))
+                self.chloram = np.concatenate((self.chloram, Y[:, 2]))
 
             # dilution
             self.e.N[-1] = self.e.N[-1] / self.dilution_factor
@@ -231,6 +234,17 @@ class Experiment:
 
             # add time
             self.time = np.concatenate((self.time, self.time[-1] + t), axis=0)
+
+    def isoclines(self):
+        Rs = np.linspace(0,30)
+        J_e_coli = [self.e.r * R / (R + self.e.Km) for R in Rs]
+        J_salmonella = [self.s.r * R / (R + self.s.Km) for R in Rs]
+        plt.plot(Rs,J_e_coli,label='E_coli')
+        plt.plot(Rs,J_salmonella,label='Salmonella')
+        plt.xlabel('Resource [mM]')
+        plt.ylabel('Per capita growth rate [1/h]')
+        plt.legend()
+        plt.show()
 
     def plot_N(self):
         plt.plot(self.time, self.e.N, label="E_coli")
@@ -246,24 +260,29 @@ class Experiment:
         plt.show()
 
     def plot_salmonella(self):
-        plt.plot(self.time, self.s.N, label="Salmonella")
+        plt.plot(self.time, self.s.N, label="Salmonella [mM]")
         plt.xlabel("Time [h]"), plt.ylabel("OD")
         plt.legend()
         plt.show()
 
     def plot_cefo(self):
-        plt.plot(self.time, self.cefo, label="Cefotaxime")
+        plt.plot(self.time, self.cefo, label="Cefotaxime [mM]")
         plt.legend()
         plt.show()
 
     def plot_chloram(self):
-        plt.plot(self.time, self.chloram, label="Chloramphenicol")
+        plt.plot(self.time, self.chloram, label="Chloramphenicol [mM]")
         plt.legend()
         plt.show()
 
     def plot_cefo_chloram(self):
-        plt.plot(self.time, self.cefo, label="Cefotaxime")
-        plt.plot(self.time, self.chloram, label="Chloramphenicol")
+        plt.plot(self.time, self.cefo, label="Cefotaxime [mM]")
+        plt.plot(self.time, self.chloram, label="Chloramphenicol [mM]")
+        plt.legend()
+        plt.show()
+
+    def plot_R(self):
+        plt.plot(self.time, self.R, label="Resource [mM]")
         plt.legend()
         plt.show()
 
