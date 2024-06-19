@@ -56,7 +56,7 @@ class E_coli:
 class Experiment:
     def __init__(self):
         # transfers
-        self.total_transfers = 8
+        self.total_transfers = 4
         # dilution factor
         self.dilution_factor = 100
         # transfer period
@@ -236,13 +236,13 @@ class Experiment:
             self.time = np.concatenate((self.time, self.time[-1] + t), axis=0)
 
     def isoclines(self):
-        Rs = np.linspace(0,30)
+        Rs = np.linspace(0, 30)
         J_e_coli = [self.e.r * R / (R + self.e.Km) for R in Rs]
         J_salmonella = [self.s.r * R / (R + self.s.Km) for R in Rs]
-        plt.plot(Rs,J_e_coli,label='E_coli')
-        plt.plot(Rs,J_salmonella,label='Salmonella')
-        plt.xlabel('Resource [mM]')
-        plt.ylabel('Per capita growth rate [1/h]')
+        plt.plot(Rs, J_e_coli, label="E_coli")
+        plt.plot(Rs, J_salmonella, label="Salmonella")
+        plt.xlabel("Resource [mM]")
+        plt.ylabel("Per capita growth rate [1/h]")
         plt.legend()
         plt.show()
 
@@ -267,22 +267,26 @@ class Experiment:
 
     def plot_cefo(self):
         plt.plot(self.time, self.cefo, label="Cefotaxime [mM]")
+        plt.xlabel("Time [h]"), plt.ylabel("Cefotaxime [mM]")
         plt.legend()
         plt.show()
 
     def plot_chloram(self):
         plt.plot(self.time, self.chloram, label="Chloramphenicol [mM]")
+        plt.xlabel("Time [h]"), plt.ylabel("Chloramphenicol [mM]")
         plt.legend()
         plt.show()
 
     def plot_cefo_chloram(self):
         plt.plot(self.time, self.cefo, label="Cefotaxime [mM]")
         plt.plot(self.time, self.chloram, label="Chloramphenicol [mM]")
+        plt.xlabel("Time [h]"), plt.ylabel("Antibiotic concentration [mM]")
         plt.legend()
         plt.show()
 
     def plot_R(self):
         plt.plot(self.time, self.R, label="Resource [mM]")
+        plt.xlabel("Time [h]"), plt.ylabel("Limitting resource concentration [mM]")
         plt.legend()
         plt.show()
 
@@ -325,10 +329,31 @@ def salmonella_susceptible():
     exp.simulate_experiment("s_toxin")
     exp.plot_salmonella()
 
+from matplotlib import pyplot as plt
+def s_protects_e():
+    e = Experiment()
+    C, T = np.meshgrid(np.linspace(0,10,50),np.linspace(0,0.25e-3,50))
+    J_E = e.e.r * C / (C + e.e.Km) - e.e.u * T / (T + e.e.KT)
+    J_S = e.s.r * C / (C + e.s.Km)
+    plt.contourf(C,T,J_E,levels=50)
+    plt.show()
+    plt.contour(C,T,J_E,levels=np.linspace(0,0.5,10))
+    plt.contour(C,T,J_S,levels=np.linspace(0,0.5,10))
+    plt.show()
 
-# e_coli_susceptible()
-# salmonella_susceptible()
-# consumer_resource()
-# s_protects_e()
-# e_protects_s()
-# two_sided()
+def e_protects_s():
+    e = Experiment()
+    C, T = np.meshgrid(np.linspace(0,30,50),np.linspace(0,16e-3,50))
+    J_E = e.e.r * C / (C + e.e.Km)
+    J_S = e.s.r * C / (C + e.s.Km) * e.s.KT / (e.s.KT + T)
+    plt.contourf(C,T,J_S,levels=50)
+    plt.show()
+    plt.contour(C,T,J_E,levels=np.linspace(0,0.5,10))
+    plt.contour(C,T,J_S,levels=np.linspace(0,0.5,10))
+
+    plt.show()
+
+
+
+
+
