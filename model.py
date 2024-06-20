@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.integrate import odeint
 from matplotlib import pyplot as plt
+from sympy import symbols, solve, Eq, init_printing
+
+R, chloram, cefo = symbols("R,chloram,cefo")
 
 
 class Salmonella:
@@ -11,20 +14,20 @@ class Salmonella:
         self.Km = 10
         # yield
         self.Y = 0.2
-        # carrying capacity
-        self.K = 0.8
-        # energy investment
-        self.f = 0.1
         # toxin monod constance
         self.KT = 16e-3 / 8
         # toxin degradation rate
         self.a = 500
-        # passive toxin uptake rate
-        self.j = 0.1
         # chloram death rate, MIC=0.6
         self.u = 0.33
         # population density
         self.N = np.array([0.1])
+
+        # functions
+        # resource growth
+        self.J = self.r * R / (R + self.Km)
+        # death
+        self.D = self.KT / (self.KT + chloram)
 
 
 class E_coli:
@@ -35,10 +38,6 @@ class E_coli:
         self.Km = 10
         # yield
         self.Y = 0.2
-        # carrying capacity
-        self.K = 1
-        # energy investment
-        self.f = 0.1
         # toxin monod constance
         self.KT = 0.25e-3 / 8
         # toxin degradation rate
@@ -50,6 +49,12 @@ class E_coli:
 
         # population density
         self.N = np.array([0.1])
+
+        # functions
+        # resource growth
+        self.J = self.r * R / (R + self.Km)
+        # death
+        self.D = self.u * cefo / (cefo + self.KT)
 
 
 # eq.e_min_death_rate()
@@ -90,77 +95,70 @@ class Experiment:
         )
         return dE, dS, dR
 
-    def logistic(self, y, t):
-        # simple logistic model
-        e, s = y
-        dE = self.e.r * (self.e.K - e) / self.e.K
-        dS = self.s.r * (self.s.K - s) / self.s.K
-        return dE, dS
-
     def e_toxin(self, y, t):
-        e, R, cefo = y
-        je = self.e.r * R / (R + self.e.Km)
-        ue = self.e.u * self.M_cefo / (self.M_cefo + self.e.KT)
-        dR = -je * e / self.e.Y
-        if t < 2:
-            dE = je * e
-            dCefo = 0
+        e, R = y
+        J = self.e.J.subs({"R": R})
+        D = self.e.D.subs({"cefo": self.M_cefo})
+        dR = -J * e / self.e.Y
+        if t > 2:
+            dE = (J - D) * e
         else:
-            dE = je * e - ue * e
-            dCefo = -cefo * self.e.j * e
-        return dE, dR, dCefo
+            dE = J * e
+        return dE, dR
 
     def s_toxin(self, y, t):
-        s, R, chloram = y
-        js = self.s.r * R / (R + self.s.Km) * self.s.KT / (self.s.KT + chloram)
-        dR = -js * s / self.s.Y
-        dS = js * s
-        dChloram = -chloram * self.s.j * s
-        return dS, dR, dChloram
+        s, R = y
+        J = self.s.J.subs({"R": R})
+        D = self.s.D.subs({"chloram": self.M_chloram})
+        dR = -J * s / self.s.Y
+        dS = (J * D) * s
+        return dS, dR
 
     def e_protects_s(self, y, t):
         e, s, R, chloram = y
-        je = self.e.r * R / (R + self.e.Km)
-        js = self.s.r * R / (R + self.s.Km) * self.s.KT / (self.s.KT + chloram)
-        dE = ((1 - self.e.f) * je) * e
-        dS = js * s
-        dR = -je * e / self.e.Y - js * s / self.s.Y
-        dChloram = -chloram * (self.e.f * self.e.a * je + self.e.j + self.s.j) * e
+        JE = self.e.J.subs({"R": R})
+        JS = self.s.J.subs({"R": R})
+        DS = self.s.D.subs({"chloram": chloram})
+        dE = JE * e
+        dS = (JS * DS) * s
+        dR = -JE * e / self.e.Y - JS * s / self.s.Y
+        dChloram = -chloram * self.e.a * e
         return dE, dS, dR, dChloram
 
     def s_protects_e(self, y, t):
         e, s, R, cefo = y
-        je = self.e.r * R / (R + self.e.Km)
-        js = self.s.r * R / (R + self.s.Km)
-        ue = self.e.u * cefo / (cefo + self.e.KT)
+        JE = self.e.J.subs({"R": R})
+        JS = self.s.J.subs({"R": R})
+        DE = self.e.D.subs({"cefo": cefo})
         if t < 2:
-            dE = je * e
+            dE = JE * e
         else:
-            dE = je * e - ue * e
-        dS = ((1 - self.s.f) * js) * s
-        dR = -je * e / self.e.Y - js * s / self.s.Y
+            dE = (JE - DE) * e
+        dS = JS * s
+        dR = -JE * e / self.e.Y - JS * s / self.s.Y
         if t > 2:
-            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j + self.e.j) * s
+            dCefo = -cefo * self.s.a * s
         else:
             dCefo = 0
         return dE, dS, dR, dCefo
 
     def two_sided_protection(self, y, t):
         e, s, R, cefo, chloram = y
-        je = self.e.r * R / (R + self.e.Km)
-        js = self.s.r * R / (R + self.s.Km) * self.s.KT / (self.s.KT + chloram)
-        ue = self.e.u * cefo / (cefo + self.e.KT)
+        JE = self.e.J.subs({"R": R})
+        JS = self.s.J.subs({"R": R})
+        DE = self.e.D.subs({"cefo": cefo})
+        DS = self.s.D.subs({"chloram": chloram})
         if t < 2:
-            dE = je * e
+            dE = JE * e
         else:
-            dE = je * e - ue * e
-        dS = js * s
-        dR = -je * e / self.e.Y - js * s / self.s.Y
+            dE = (JE - DE) * e
+        dS = (JS * DS) * s
+        dR = -JE * e / self.e.Y - JS * s / self.s.Y
         if t > 2:
-            dCefo = -cefo * (self.s.f * self.s.a * js + self.s.j + self.e.j) * s
+            dCefo = -cefo * self.s.a * s
         else:
             dCefo = 0
-        dChloram = -chloram * (self.e.f * self.e.a * je + self.e.j + self.s.j) * e
+        dChloram = -chloram * self.e.a * e
         return dE, dS, dR, dCefo, dChloram
 
     def simulate_experiment(self, model):
@@ -211,23 +209,19 @@ class Experiment:
             if model == "e_toxin":
                 Y = odeint(
                     self.e_toxin,
-                    [self.e.N[-1], self.M, self.M_cefo],
+                    [self.e.N[-1], self.M],
                     t,
                 )
                 self.e.N = np.concatenate((self.e.N, Y[:, 0]))
                 self.R = np.concatenate((self.R, Y[:, 1]))
-                self.cefo = np.concatenate((self.cefo, Y[:, 2]))
-
             if model == "s_toxin":
                 Y = odeint(
                     self.s_toxin,
-                    [self.s.N[-1], self.M, self.M_chloram],
+                    [self.s.N[-1], self.M],
                     t,
                 )
                 self.s.N = np.concatenate((self.s.N, Y[:, 0]))
                 self.R = np.concatenate((self.R, Y[:, 1]))
-                self.chloram = np.concatenate((self.chloram, Y[:, 2]))
-
             # dilution
             self.e.N[-1] = self.e.N[-1] / self.dilution_factor
             self.s.N[-1] = self.s.N[-1] / self.dilution_factor
@@ -329,31 +323,39 @@ def salmonella_susceptible():
     exp.simulate_experiment("s_toxin")
     exp.plot_salmonella()
 
+
 from matplotlib import pyplot as plt
+
+
 def s_protects_e():
     e = Experiment()
-    C, T = np.meshgrid(np.linspace(0,10,50),np.linspace(0,0.25e-3,50))
+    C, T = np.meshgrid(np.linspace(0, 10, 50), np.linspace(0, 0.25e-3, 50))
     J_E = e.e.r * C / (C + e.e.Km) - e.e.u * T / (T + e.e.KT)
     J_S = e.s.r * C / (C + e.s.Km)
-    plt.contourf(C,T,J_E,levels=50)
+    plt.contourf(C, T, J_E, levels=50)
     plt.show()
-    plt.contour(C,T,J_E,levels=np.linspace(0,0.5,10))
-    plt.contour(C,T,J_S,levels=np.linspace(0,0.5,10))
+    plt.contour(C, T, J_E, levels=np.linspace(0, 0.5, 10))
+    plt.contour(C, T, J_S, levels=np.linspace(0, 0.5, 10))
     plt.show()
+
 
 def e_protects_s():
     e = Experiment()
-    C, T = np.meshgrid(np.linspace(0,30,50),np.linspace(0,16e-3,50))
+    C, T = np.meshgrid(np.linspace(0, 30, 50), np.linspace(0, 16e-3, 50))
     J_E = e.e.r * C / (C + e.e.Km)
     J_S = e.s.r * C / (C + e.s.Km) * e.s.KT / (e.s.KT + T)
-    plt.contourf(C,T,J_S,levels=50)
+    plt.contourf(C, T, J_S, levels=50)
     plt.show()
-    plt.contour(C,T,J_E,levels=np.linspace(0,0.5,10))
-    plt.contour(C,T,J_S,levels=np.linspace(0,0.5,10))
+    plt.contour(C, T, J_E, levels=np.linspace(0, 0.5, 10))
+    plt.contour(C, T, J_S, levels=np.linspace(0, 0.5, 10))
 
     plt.show()
 
 
-
-
-
+e = Experiment()
+e.total_transfers = 1
+e.transfer_period = 24
+e.dilution_factor = 1
+e.simulate_experiment("two_sided")
+e.plot_N()
+e.plot_cefo()
