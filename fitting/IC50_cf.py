@@ -130,7 +130,7 @@ def fit_IC50():
     )
 
     top, bottom, log_ic50, hill_slope = params
-    ic50 = 10**log_ic50  # Convert log_IC50 back to linear scale
+    ic50 = np.exp(log_ic50)  # Convert log_IC50 back to linear scale
     print(ic50)
     log_dose_fit = np.linspace(
         np.log(concentrations[1:]).min(), np.log(concentrations[1:]).max(), 100
@@ -157,6 +157,9 @@ def fit_IC50():
             line=dict(color=colors["ecoli"], dash="dash"),
             name="Model",
         )
+    )
+    fig.add_vline(
+        x=ic50, line_color="black", line_dash="dash", annotation=dict(text="IC50")
     )
     fig.update_xaxes(title="Cefotaxime [µL/mL]", type="log"), fig.update_yaxes(
         title="Response in %"

@@ -15,18 +15,27 @@ def model(y, t):
     return dN0
 
 
-J = [0.8 * (1 - N / 1) for N in np.linspace(0.01, 1, 20)]
-Cm = np.linspace(0, 16, 10)
-J_grid, Cm_grid = np.meshgrid(np.array(J), np.array(Cm))
-JD = J_grid * 1 / (1 + Cm_grid / 0.00030537131107306284)
-plt.contourf(J_grid, Cm_grid, JD, levels=100)
-plt.colorbar(label="μ [1/h]")
-plt.show()
-
-J = [0.8 * (1 - N / 1) for N in np.linspace(0.01, 1, 20)]
-Cf = np.linspace(0, 0.25, 10)
+J = np.linspace(0, 0.9, 100)
+Cf = np.linspace(0, 0.25, 100)
 J_grid, Cf_grid = np.meshgrid(np.array(J), np.array(Cf))
-JD = J_grid - Cf_grid / (Cf_grid + 0.00030537131107306284)
-plt.contourf(J_grid, Cf_grid, JD, levels=100)
-plt.colorbar(label="μ [1/h]")
-plt.show()
+JD = J_grid - 1.5 * Cf_grid / (Cf_grid + 0.029)
+plt.contourf(J_grid, Cf_grid, JD, levels=20, cmap="coolwarm")
+plt.colorbar(label="Netto growth rate [1/h]")
+plt.xlabel("Per capita growth rate µ [1/h]")
+plt.ylabel("Cefotaxime concentration μg/mL")
+plt.title("J = -1.5 1/h")
+plt.tight_layout()
+plt.savefig("../figures/fig5_cefotaxime_isoclines_1_5.svg")
+plt.close()
+
+J = np.linspace(0, 0.7, 100)
+Cf = np.linspace(0, 16, 100)
+J_grid, Cf_grid = np.meshgrid(np.array(J), np.array(Cf))
+JD = J_grid * 1 / (1 + Cf_grid / 0.32)
+plt.contourf(J_grid, Cf_grid, JD, levels=20, cmap="coolwarm")
+plt.colorbar(label="Netto growth rate [1/h]")
+plt.xlabel("Per capita growth rate µ [1/h]")
+plt.ylabel("Chloramphenicol concentration μg/mL")
+plt.tight_layout()
+plt.savefig("../figures/fig5_chloramphenicol.svg")
+plt.close()
