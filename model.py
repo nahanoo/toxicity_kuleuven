@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 from matplotlib import pyplot as plt
 from sympy import symbols, solve, Eq, init_printing
-
+ 
 
 class Salmonella:
 
