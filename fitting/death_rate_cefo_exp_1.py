@@ -40,7 +40,7 @@ def plot_death_experiment_1():
     )
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="CFUs/mL")
     fig = style_plot(fig, line_thickness=2, marker_size=4, left_margin=60)
-    fig.write_image("../figures/fig4_ecoli_sfGFP_experiment1.svg")
+    fig.write_image("../plots/experiments/death_rate_ecoli_sfGFP_experiment1.svg")
 
     strain = "EcN sfGFP CAT"
     fig = go.Figure()
@@ -58,4 +58,7 @@ def plot_death_experiment_1():
     )
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="CFUs/mL")
     fig = style_plot(fig, line_thickness=2, marker_size=4, left_margin=60)
-    fig.write_image("../figures/fig4_ecoli_sfGFP_CAT_experiment1.svg")
+    fig.write_image("../plots/experiments/death_rate_ecoli_sfGFP_CAT_experiment1.svg")
+
+
+plot_death_experiment_1()

@@ -65,7 +65,7 @@ def st_resistance():
         width=width / 1.3, height=height / 1.3, title="ST mCherry CTX resistance"
     )
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig2_st_cefotaxime_resistance.svg")
+    fig.write_image("../plots/experiments/st_cefotaxime_resistance.svg")
 
 
 def e_coli_sus():
@@ -89,7 +89,7 @@ def e_coli_sus():
         width=width / 1.3, height=height / 1.3, title="EcN sfGFP CAT Susceptibility"
     )
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig2_e_coli_susceptibility.svg")
+    fig.write_image("../plots/experiments/e_coli_cefotaxime_susceptibility.svg")
 
 
 def e_coli_response_curve():
@@ -112,7 +112,7 @@ def e_coli_response_curve():
         width=width / 1.3, height=height / 1.3, title="EcN sfGFP CAT Response curve"
     )
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig2_e_coli_response_curve.svg")
+    fig.write_image("../plots/experiments/e_coli_cefotaxime_response_curve.svg")
 
 
 def logistic_curve(log_dose, top, bottom, log_ic50, hill_slope):
@@ -168,7 +168,4 @@ def fit_IC50():
         width=width / 1.3, height=height / 1.3, title="EcN sfGFP CAT Response curve"
     )
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig2_e_coli_response_curve_fit.svg")
-
-
-fit_IC50()
+    fig.write_image("../plots/experiments/e_coli_cefotaxime_response_curve_fit.svg")

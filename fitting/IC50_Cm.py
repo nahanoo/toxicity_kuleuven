@@ -50,7 +50,7 @@ def st_sus():
     )
     fig.update_layout(width=width / 1.3, height=height / 1.3, title="ST mCherry CTX")
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig3_st_susceptibility.svg")
+    fig.write_image("../plots/experiments/st_chloram_susceptibility.svg")
 
 
 def ecoli_resistance():
@@ -69,7 +69,7 @@ def ecoli_resistance():
     fig.update_xaxes(title="Cm [µL/mL]"), fig.update_yaxes(title="Abundance [OD]")
     fig.update_layout(width=width / 1.3, height=height / 1.3, title=strain)
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig3_ecoli_cm_resistance.svg")
+    fig.write_image("../plots/experiments/ecoli_chloram_resistance.svg")
 
 
 def st_response_curve():
@@ -92,7 +92,7 @@ def st_response_curve():
         width=width / 1.3, height=height / 1.3, title="ST mCherry CTX Response curve"
     )
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig3_st_response_curve.svg")
+    fig.write_image("../plots/experiments/st_chloram_response_curve.svg")
 
 
 def logistic_curve(log_dose, top, bottom, log_ic50, hill_slope):
@@ -148,4 +148,10 @@ def fit_IC50():
         width=width / 1.3, height=height / 1.3, title="EcN sfGFP CAT Response curve"
     )
     fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
-    fig.write_image("../figures/fig3_st_response_curve_fit.svg")
+    fig.write_image("../plots/experiments/st_chloram_response_curve_fit.svg")
+
+
+st_sus()
+ecoli_resistance()
+st_response_curve()
+fit_IC50()
