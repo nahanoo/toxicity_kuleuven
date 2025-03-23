@@ -7,7 +7,7 @@ from style import *
 class Salmonella:
     def __init__(self):
         # max. growth rate
-        self.r = 0.7
+        self.r = 0.45
         # monod constant
         self.K = 1.1
         # toxin monod constance
@@ -15,7 +15,7 @@ class Salmonella:
         # toxin degradation rate
         self.a = 1
         # detoxification factor
-        self.q = 80
+        self.q = 0.1
         # population density
         self.N = np.array([0.1])
         # passive uptake rate
@@ -32,7 +32,7 @@ class E_coli:
         # toxin degradation rate
         self.a = 1
         # detoxification factor
-        self.q = 1
+        self.q = 0.1
         # cefo death rate
         self.u = 1
         # population density
@@ -41,20 +41,20 @@ class E_coli:
 
 # eq.e_min_death_rate()
 class Experiment:
-
     def __init__(self):
         # transfers
-        self.total_transfers = 10
+        self.total_transfers = 8
         # dilution factor
         self.dilution_factor = 100
         # transfer period
         self.transfer_period = 24
         # cefotaxime concentration
         self.M_cefo = 0.25
+        self.cefo_start = 2
         # chloramphenicol concentration
         self.M_chloram = 16
         # array for cefotaxime concentration
-        self.cefo = np.array([self.M_cefo])
+        self.cefo = np.array([0])
         # array for chlorampheicol concentration
         self.chloram = np.array([self.M_chloram])
         # array for time
@@ -63,89 +63,41 @@ class Experiment:
         self.S = Salmonella()
         self.E = E_coli()
 
-    def transfer(self, model, y0):
-        for i in range(self.total_transfers):
-            steps = 100
-            t = np.linspace(0, self.transfer_period, steps)
-            Y = odeint(model, y0, t)
-            self.E.N = np.concatenate((self.E.N, Y[:, 0]))
-            self.S.N = np.concatenate((self.S.N, Y[:, 1]))
-            if len(Y[-1]) == 3:
-                self.cefo = np.concatenate((self.cefo, Y[:, 2]))
-            if len(Y[-1]) == 4:
-                self.chloram = np.concatenate((self.chloram, Y[:, 3]))
-            self.time = np.concatenate((self.time, self.time[-1] + t), axis=0)
+    def growth_e(self, E, S):
+        return self.E.r * (1 - (E + S) / self.E.K)
 
-            self.E.N[-1] = self.E.N[-1] / self.dilution_factor
-            self.S.N[-1] = self.S.N[-1] / self.dilution_factor
-            y0[0], y0[1] = self.E.N[-1], self.S.N[-1]
+    def growth_s(self, E, S):
+        return self.S.r * (1 - (E + S) / self.S.K)
 
-    def no_antibiotics(self, y, t):
-        E, S = y
-        dE = self.E.r * (1 - (E + S) / self.E.K) * E
-        dS = self.S.r * (1 - (S + E) / self.S.K) * S
-        return dE, dS
+    def death_e(self, E, S, cefo):
+        return self.E.u * cefo / (cefo + self.E.KT)
 
-    def s_e_chloram(self, y, t):
-        E, S = y
-        dE = self.E.r * (1 - (E + S) / self.E.K) * E
-        dS = (
-            self.S.r * (1 - (E + S) / self.S.K) / (1 + (self.M_chloram / self.S.KT)) * S
-        )
-        return dE, dS
+    def death_s(self, S, chloram):
+        return 1 / (1 + (chloram / self.S.KT))
 
-    def s_e_cefotaxime(self, y, t):
-        E, S = y
-        dE = (
-            self.E.r * (1 - (E + S) / self.E.K) * E
-            - self.E.u * self.M_cefo / (self.M_cefo + self.E.KT) * E
-        )
-        dS = self.S.r * (1 - (E + S) / self.S.K) * S
-        return dE, dS
+    def degradation_e(self, E):
+        return self.E.a * E / self.E.q
 
-    def s_e_chloram_cefo(self, y, t):
-        E, S = y
-        dE = (
-            self.E.r * (1 - (E + S) / self.E.K) * E
-            - self.E.u * self.M_cefo / (self.M_cefo + self.E.KT) * E
-        )
-        dS = (
-            self.S.r * (1 - (E + S) / self.S.K) / (1 + (self.M_chloram / self.S.KT)) * S
-        )
-        return dE, dS
+    def degradation_s(self, S):
+        return self.S.a * S / self.S.q
 
-    def s_e_ceftaxime_degradation(self, y, t):
-        E, S, cefo = y
-        dE = (
-            self.E.r * (1 - (E + S) / self.E.K) * E
-            - self.E.u * cefo / (cefo + self.E.KT) * E
-        )
-        dS = self.S.r * (1 - (E + S) / self.S.K) * S
-        dCefo = -self.S.a * S / self.S.q
-        return dE, dS, dCefo
-
-    def transfer_no_antibiotics(self):
-        self.transfer(self.no_antibiotics, [self.E.N[0], self.S.N[0]])
-        self.plot_N("no_antibiotics")
-
-    def transfer_s_e_cefotaxime(self):
-        self.transfer(self.s_e_cefotaxime, [self.E.N[0], self.S.N[0]])
-        self.plot_N("s_e_cefotaxime")
-
-    def transfer_s_e_chloram(self):
-        self.transfer(self.s_e_chloram, [self.E.N[0], self.S.N[0]])
-        self.plot_N("s_e_chloram")
-
-    def transfer_s_e_chloram_cefo(self):
-        self.transfer(self.s_e_chloram_cefo, [self.E.N[0], self.S.N[0]])
-        self.plot_N("s_e_chloram_cefo")
-
-    def transfer_s_e_cefotaxime_degradation(self):
-        self.transfer(
-            self.s_e_ceftaxime_degradation, [self.E.N[0], self.S.N[0], self.M_cefo]
-        )
-        self.plot_N("s_e_cefotaxime_degradation")
-        self.plot_cefo("s_cefotaxime_degradation")
+    def model(self, y, t):
+        E, S, cefo, chloram = y
+        if t >= self.cefo_start:
+            dE = E * (self.growth_e(E, S) - self.death_e(E, S, cefo))
+            if cefo <= 0:
+                dCefo = 0
+            else:
+                dCefo = -self.growth_s(E, S) * self.degradation_s(S)
+        else:
+            dE = self.growth_e(E, S) * E
+            dCefo = 0
+        dS = self.growth_s(E, S) * self.death_s(S, chloram) * S
+        if chloram <= 0:
+            dChloram = 0
+        else:
+            dChloram = -self.growth_e(E, S) * self.degradation_e(E)
+        return dE, dS, dCefo, dChloram
 
     def plot_N(self, fname):
         fig = go.Figure(
@@ -196,13 +148,13 @@ class Experiment:
 
         fig.update_layout(
             xaxis=dict(
-                range=[0, max(self.time)],
-                dtick=12,
+                # range=[0, max(self.time)],
+                # dtick=6,
                 title="Time [1/h]",
             ),
             yaxis=dict(
-                range=[0, 0.3],
-                dtick=0.05,
+                # range=[-10, 0.3],
+                # dtick=0.05,
                 title="Cefotaxime concentration [µg/mL]",
             ),
             width=width,
@@ -211,21 +163,30 @@ class Experiment:
         fig = style_plot(fig, line_thickness=1.7)
         fig.write_image("plots/transfers/" + fname + ".svg")
 
+    def plot_chloram(self, fname):
+        fig = go.Figure(
+            go.Scatter(
+                x=self.time,
+                y=self.chloram,
+                mode="lines",
+                name="Cefotaxime",
+                line=dict(color="black"),
+            )
+        )
 
-e = Experiment()
-e.transfer_no_antibiotics()
-
-e = Experiment()
-e.transfer_s_e_cefotaxime()
-
-e = Experiment()
-e.transfer_s_e_chloram()
-
-e = Experiment()
-e.transfer_s_e_chloram_cefo()
-
-e = Experiment()
-e.transfer_s_e_chloram_cefo()
-
-e = Experiment()
-e.transfer_s_e_cefotaxime_degradation()
+        fig.update_layout(
+            xaxis=dict(
+                # range=[0, max(self.time)],
+                # dtick=6,
+                title="Time [1/h]",
+            ),
+            yaxis=dict(
+                # range=[-10, 18],
+                # dtick=4,
+                title="Chloramphenicol concentration [µg/mL]",
+            ),
+            width=width,
+            height=height,
+        )
+        fig = style_plot(fig, line_thickness=1.7)
+        fig.write_image("plots/transfers/" + fname + ".svg")
