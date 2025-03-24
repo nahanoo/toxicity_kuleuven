@@ -4,6 +4,11 @@ colors = {
     "ecoli": "#33CC33",
 }
 font_size = 14
+coolwarm_colorscale = [
+    [0.0, "rgb(58, 76, 192)"],  # Dark blue
+    [0.5, "rgb(221, 221, 221)"],  # White
+    [1.0, "rgb(180, 4, 38)"],  # Dark red
+]
 
 
 def style_plot(
