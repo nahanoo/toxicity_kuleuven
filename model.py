@@ -8,16 +8,18 @@ class Salmonella:
     def __init__(self):
         # max. growth rate
         self.r = 0.45
-        # monod constant
+        # Carryin capacity
         self.K = 1.1
         # toxin monod constance
         self.KT = 0.32
         # toxin degradation rate
         self.a = 1
         # detoxification factor
-        self.q = 0.1
-        # population density
-        self.N = np.array([0.1])
+        self.q = 0.05
+        # Initial population density
+        self.N0 = 0.1
+        # Population density
+        self.N = np.array([])
         # passive uptake rate
 
 
@@ -25,31 +27,34 @@ class E_coli:
     def __init__(self):
         # max. growth rate
         self.r = 0.9
-        # monod constant
+        # Carrying capacity
         self.K = 1.1
         # toxin monod constance
         self.KT = 0.03
         # toxin degradation rate
         self.a = 1
         # detoxification factor
-        self.q = 0.1
+        self.q = 0.05
         # cefo death rate
         self.u = 1
+        # Initial population density
+        self.N0 = 0.1
         # population density
-        self.N = np.array([0.1])
+        self.N = np.array([])
 
 
 # eq.e_min_death_rate()
 class Experiment:
     def __init__(self):
         # transfers
-        self.total_transfers = 8
+        self.total_transfers = 10
         # dilution factor
         self.dilution_factor = 100
         # transfer period
         self.transfer_period = 24
         # cefotaxime concentration
         self.M_cefo = 0.25
+        # Time after cefotaixme is added
         self.cefo_start = 2
         # chloramphenicol concentration
         self.M_chloram = 16
@@ -58,48 +63,50 @@ class Experiment:
         # array for chlorampheicol concentration
         self.chloram = np.array([self.M_chloram])
         # array for time
-        self.time = np.array([0])
+        self.time = np.array([])
         # create bugs
         self.S = Salmonella()
         self.E = E_coli()
 
     def growth_e(self, E, S):
+        # Growth function for e coli
         return self.E.r * (1 - (E + S) / self.E.K)
 
     def growth_s(self, E, S):
+        # Growth function for salmonella
         return self.S.r * (1 - (E + S) / self.S.K)
 
-    def death_e(self, E, S, cefo):
+    def death_e(self, cefo):
+        # Death function for e coli
         return self.E.u * cefo / (cefo + self.E.KT)
 
-    def death_s(self, S, chloram):
+    def death_s(self, chloram):
+        # Death function for salmonella
         return 1 / (1 + (chloram / self.S.KT))
 
     def degradation_e(self, E):
+        # Degradation of chloramphenicol by e coli
         return self.E.a * E / self.E.q
 
     def degradation_s(self, S):
+        # Degradation of cefotaxime by salmonella
         return self.S.a * S / self.S.q
 
     def model(self, y, t):
         E, S, cefo, chloram = y
         if t >= self.cefo_start:
-            dE = E * (self.growth_e(E, S) - self.death_e(E, S, cefo))
-            if cefo <= 0:
-                dCefo = 0
-            else:
-                dCefo = -self.growth_s(E, S) * self.degradation_s(S)
+            # Considering that cefotaxime is added after two hours
+            dE = E * (self.growth_e(E, S) - self.death_e(cefo))
+            dCefo = -self.growth_s(E, S) * self.degradation_s(S) * cefo
         else:
             dE = self.growth_e(E, S) * E
             dCefo = 0
-        dS = self.growth_s(E, S) * self.death_s(S, chloram) * S
-        if chloram <= 0:
-            dChloram = 0
-        else:
-            dChloram = -self.growth_e(E, S) * self.degradation_e(E)
+        dS = self.growth_s(E, S) * self.death_s(chloram) * S
+        dChloram = -self.growth_e(E, S) * self.degradation_e(E) * chloram
         return dE, dS, dCefo, dChloram
 
     def plot_N(self, fname):
+        # Plotting the abundance of e coli and salmonella
         fig = go.Figure(
             go.Scatter(
                 x=self.time,
@@ -120,14 +127,14 @@ class Experiment:
         )
         fig.update_layout(
             xaxis=dict(
-                range=[0, max(self.time)],
-                dtick=12,
-                title="Time [1/h]",
+                # range=[0, max(self.time)],
+                # dtick=12,
+                title="Time [h]",
             ),
             yaxis=dict(
-                range=[0, 1.2],
-                dtick=0.2,
-                title="Abundance",
+                # range=[0, 1.2],
+                # dtick=0.2,
+                title="Abundance [OD]",
             ),
             width=width,
             height=height,
@@ -136,6 +143,7 @@ class Experiment:
         fig.write_image("plots/transfers/" + fname + ".svg")
 
     def plot_cefo(self, fname):
+        # Plotting the cefotaxime concentration
         fig = go.Figure(
             go.Scatter(
                 x=self.time,
@@ -150,7 +158,7 @@ class Experiment:
             xaxis=dict(
                 # range=[0, max(self.time)],
                 # dtick=6,
-                title="Time [1/h]",
+                title="Time h",
             ),
             yaxis=dict(
                 # range=[-10, 0.3],
@@ -164,6 +172,7 @@ class Experiment:
         fig.write_image("plots/transfers/" + fname + ".svg")
 
     def plot_chloram(self, fname):
+        # Plotting the chloramphenicol concentration
         fig = go.Figure(
             go.Scatter(
                 x=self.time,
@@ -178,7 +187,7 @@ class Experiment:
             xaxis=dict(
                 # range=[0, max(self.time)],
                 # dtick=6,
-                title="Time [1/h]",
+                title="Time [h]",
             ),
             yaxis=dict(
                 # range=[-10, 18],
