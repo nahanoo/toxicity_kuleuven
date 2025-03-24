@@ -105,6 +105,42 @@ class Experiment:
         dChloram = -self.growth_e(E, S) * self.degradation_e(E) * chloram
         return dE, dS, dCefo, dChloram
 
+    def transfer(self):
+        for i in range(self.total_transfers):
+            steps = 1000
+            # For continuity of time we need to add previous time
+            t0 = self.time[-1] if len(self.time) > 0 else 0
+            t1 = np.linspace(t0, t0 + self.cefo_start, steps)
+            y0 = [self.E.N0, self.S.N0, 0, self.M_chloram]
+            # Integration over period before cefotaxime is added
+            Y1 = odeint(self.model, y0, t1)
+            self.time = np.concatenate((self.time, t1))
+            self.E.N = np.concatenate((self.E.N, Y1[:, 0]))
+            self.S.N = np.concatenate((self.S.N, Y1[:, 1]))
+            self.cefo = np.concatenate((self.cefo, Y1[:, 2]))
+            self.chloram = np.concatenate((self.chloram, Y1[:, 3]))
+            # Integration after cefotaxime is added
+            t2 = np.linspace(
+                t1[-1], t1[-1] + (self.transfer_period - self.cefo_start), steps
+            )
+            y0 = [
+                self.E.N[-1],
+                self.S.N[-1],
+                self.M_cefo,
+                self.chloram[-1],
+            ]  # Add antibiotic
+            Y2 = odeint(self.model, y0, t2)
+
+            self.time = np.concatenate((self.time, t2))
+            self.E.N = np.concatenate((self.E.N, Y2[:, 0]))
+            self.S.N = np.concatenate((self.S.N, Y2[:, 1]))
+            self.cefo = np.concatenate((self.cefo, Y2[:, 2]))
+            self.chloram = np.concatenate((self.chloram, Y2[:, 3]))
+
+            # Dilution for next transfer cycle
+            self.E.N0 = self.E.N[-1] / self.dilution_factor
+            self.S.N0 = self.S.N[-1] / self.dilution_factor
+
     def plot_N(self, fname):
         # Plotting the abundance of e coli and salmonella
         fig = go.Figure(
