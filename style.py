@@ -9,7 +9,9 @@ colors = {
     "Spent media Oa": "#E7298A",
     "H20": "gray",
     "st": "#de5959",
+    "st_error": "#f1a2a2",
     "ecoli": "#50a250",
+    "ecoli_error": "#a0d0a0",
 }
 
 colors_heatmap = [
