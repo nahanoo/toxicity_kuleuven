@@ -139,19 +139,22 @@ def fit_IC50():
         )
     )
     fig.add_vline(
-        x=ic50, line_color="black", line_dash="dash", annotation=dict(text="IC50")
+        x=ic50,
+        line_color="black",
+        line_dash="dash",
+        # annotation=dict(text="IC50"),
+        line_width=1,
     )
-    fig.update_xaxes(title="Cefotaxime [µL/mL]", type="log"), fig.update_yaxes(
-        title="Response in %"
-    )
+    fig.update_xaxes(title="Cefotaxime [µL/mL]", type="log", dtick=1, ticks="inside")
+    fig.update_yaxes(title="Response in %", ticks="inside")
     fig.update_layout(
-        width=width / 1.3, height=height / 1.3, title="EcN sfGFP CAT Response curve"
+        width=width,
+        height=height,
+        showlegend=False,
+        # title="EcN sfGFP CAT Response curve"
     )
-    fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=60)
+    fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=30)
     fig.write_image("../plots/experiments/st_chloram_response_curve_fit.svg")
 
 
-st_sus()
-ecoli_resistance()
-st_response_curve()
 fit_IC50()

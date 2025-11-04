@@ -7,9 +7,9 @@ from style import *
 class Salmonella:
     def __init__(self):
         # max. growth rate
-        self.r = 0.45
+        self.r = 1.1
         # Carryin capacity
-        self.K = 1.1
+        self.K = 1
         # toxin monod constance
         self.KT = 0.32
         # toxin degradation rate
@@ -26,9 +26,9 @@ class Salmonella:
 class E_coli:
     def __init__(self):
         # max. growth rate
-        self.r = 0.9
+        self.r = 1.2
         # Carrying capacity
-        self.K = 1.1
+        self.K = 1
         # toxin monod constance
         self.KT = 0.03
         # toxin degradation rate
@@ -47,7 +47,7 @@ class E_coli:
 class Experiment:
     def __init__(self):
         # transfers
-        self.total_transfers = 10
+        self.total_transfers = 5
         # dilution factor
         self.dilution_factor = 100
         # transfer period
@@ -145,7 +145,7 @@ class Experiment:
         # Plotting the abundance of e coli and salmonella
         fig = go.Figure(
             go.Scatter(
-                x=self.time,
+                x=self.time / 24,
                 y=self.E.N,
                 mode="lines",
                 name="E_coli",
@@ -154,7 +154,7 @@ class Experiment:
         )
         fig.add_trace(
             go.Scatter(
-                x=self.time,
+                x=self.time / 24,
                 y=self.S.N,
                 mode="lines",
                 name="Salmonella",
@@ -162,20 +162,13 @@ class Experiment:
             )
         )
         fig.update_layout(
-            xaxis=dict(
-                # range=[0, max(self.time)],
-                # dtick=12,
-                title="Time [h]",
-            ),
-            yaxis=dict(
-                # range=[0, 1.2],
-                # dtick=0.2,
-                title="Abundance [OD]",
-            ),
+            xaxis=dict(title="Days", ticks="inside"),
+            yaxis=dict(title="Abundance", ticks="inside"),
             width=width,
             height=height,
+            showlegend=False,
         )
-        fig = style_plot(fig, line_thickness=1.7)
+        fig = style_plot(fig, line_thickness=1.7, font_size=11)
         fig.write_image("plots/transfers/" + fname + ".svg")
 
     def plot_cefo(self, fname):

@@ -9,43 +9,6 @@ import plotly.graph_objects as go
 from style import *
 from plotly.subplots import make_subplots
 
-paramters = ""
-fig_total = go.Figure()
-
-f = join("~", "curves", "metadata", "pooled_df_joint_metadata.csv")
-pooled_meta = pd.read_csv(f)
-f = join("~", "curves", "export", "240903_fran", "measurement_data.csv")
-raw = pd.read_csv(f)
-strain = "Salmonella Typhimurium mcherry:pGDPI CTX-M-15"
-conc = 1
-filter = (pooled_meta["project"] == "240903_fran") & (
-    pooled_meta["Experiment description"].isin(
-        [
-            "Repeat 1 of TSB gradient experiment with all strains.",
-            "Repeat 2 of TSB gradient experiment with all strains.",
-            "Repeat 3 of TSB gradient experiment with all strains.",
-        ]
-    )
-    & (pooled_meta["cs_conc"] == conc)
-    & (pooled_meta["species"] == strain)
-)
-
-meta = pooled_meta[filter]
-xs = [raw[raw["linegroup"] == lg]["time"].to_numpy() for lg in meta["linegroup"]]
-ys = [raw[raw["linegroup"] == lg]["measurement"].to_numpy() for lg in meta["linegroup"]]
-show_legend = True
-for x, y in zip(xs, ys):
-    fig_total.add_trace(
-        go.Scatter(
-            x=x,
-            y=y,
-            name="Salmonella Typhimurium <br>mcherry:pGDPI CTX-M-15",
-            showlegend=show_legend,
-            line=dict(color=colors["st"]),
-        ),
-    )
-    show_legend = False
-
 
 def logistic(y, t, v, K):
     N = y[0]
@@ -53,91 +16,161 @@ def logistic(y, t, v, K):
     return dN
 
 
-ts = np.linspace(0, x[-1], 500)
-sim = odeint(logistic, [0.001], ts, args=(0.7, 1.08))
-fig_fit_st = go.Figure()
-show_legend = True
-for x, y in zip(xs, ys):
-    fig_fit_st.add_trace(
+fig_st_e = go.Figure()
+
+
+def st():
+    fig = go.Figure()
+    f = join(
+        "~", "toxicity_kuleuven", "data", "nut_gradient", "pooled_df_joint_metadata.csv"
+    )
+    pooled_meta = pd.read_csv(f)
+    f = join("~", "toxicity_kuleuven", "data", "nut_gradient", "measurement_data.csv")
+    raw = pd.read_csv(f)
+    strain = "Salmonella Typhimurium mcherry:pGDPI CTX-M-15"
+    conc = 1
+    filter = (pooled_meta["project"] == "240903_fran") & (
+        pooled_meta["Experiment description"].isin(
+            [
+                "Repeat 1 of TSB gradient experiment with all strains.",
+                "Repeat 2 of TSB gradient experiment with all strains.",
+                "Repeat 3 of TSB gradient experiment with all strains.",
+            ]
+        )
+        & (pooled_meta["cs_conc"] == conc)
+        & (pooled_meta["species"] == strain)
+    )
+
+    meta = pooled_meta[filter]
+    xs = [raw[raw["linegroup"] == lg]["time"].to_numpy() for lg in meta["linegroup"]]
+    ys = [
+        raw[raw["linegroup"] == lg]["measurement"].to_numpy()
+        for lg in meta["linegroup"]
+    ]
+    sim = odeint(logistic, [0.001], xs[0], args=(1.2, 1.1))[:, 0]
+    for i, (x, y) in enumerate(zip(xs, ys)):
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=np.log(y),
+                name="<i>Salmonella Typhimurium</i> <br>mcherry:pGDPI CTX-M-15",
+                line=dict(color=colors["st"]),
+                showlegend=i == 0,
+            )
+        )
+    fig.add_trace(
         go.Scatter(
-            x=x,
-            y=y,
-            name="Salmonella Typhimurium <br>mcherry:pGDPI CTX-M-15",
-            showlegend=show_legend,
-            line=dict(color=colors["st"]),
+            x=xs[0],
+            y=np.log(sim),
+            name="Logistic fit",
+            line=dict(color=colors["st"], dash="dash"),
+            showlegend=True,
         )
     )
-    show_legend = False
-fig_fit_st.add_trace(
-    go.Scatter(x=ts, y=sim[:, 0], name="Model", line=dict(color="black", dash="dash"))
-)
-fig_fit_st = style_plot(fig_fit_st)
-fig_fit_st.update_layout(width=width, height=height * 0.8)
-fig_fit_st.update_xaxes(title="Time [h]"), fig_fit_st.update_yaxes(
-    title="Abundance [OD]"
-)
-fig_fit_st.write_image("../plots/experiments/st_fit.svg")
-
-f = join("~", "curves", "metadata", "pooled_df_joint_metadata.csv")
-pooled_meta = pd.read_csv(f)
-f = join("~", "curves", "export", "240903_fran", "measurement_data.csv")
-raw = pd.read_csv(f)
-strain = "Escherichia coli  sfGFP:pGDPI CAT"
-conc = 1
-filter = (pooled_meta["project"] == "240903_fran") & (
-    pooled_meta["Experiment description"].isin(
-        [
-            "Repeat 1 of TSB gradient experiment with all strains.",
-            "Repeat 2 of TSB gradient experiment with all strains.",
-            "Repeat 3 of TSB gradient experiment with all strains.",
-        ]
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", range=[0, 48], dtick=8),
+        yaxis=dict(title="OD", range=[0, 1.2], dtick=0.2),
+        width=width,
+        height=height,
     )
-    & (pooled_meta["cs_conc"] == conc)
-    & (pooled_meta["species"] == strain)
-)
-
-meta = pooled_meta[filter]
-xs = [raw[raw["linegroup"] == lg]["time"].to_numpy() for lg in meta["linegroup"]]
-ys = [raw[raw["linegroup"] == lg]["measurement"].to_numpy() for lg in meta["linegroup"]]
-show_legend = True
-for x, y in zip(xs, ys):
-    fig_total.add_trace(
-        go.Scatter(
-            x=x,
-            y=y,
-            name="Escherichia coli  <br>sfGFP:pGDPI CAT",
-            showlegend=show_legend,
-            line=dict(color=colors["ecoli"]),
-        ),
+    fig = style_plot(
+        fig,
+        line_thickness=1,
+        buttom_margin=0,
+        left_margin=40,
+        top_margin=0,
+        right_margin=0,
     )
-    show_legend = False
+    fig.write_image("../plots/experiments/st_fit.svg")
+    fig_st_e.add_trace(fig["data"][0])
+    fig_st_e.add_trace(fig["data"][1])
+    fig_st_e.add_trace(fig["data"][2])
 
-ts = np.linspace(0, x[-1], 500)
-sim = odeint(logistic, [0.001], ts, args=(0.9, 1.08))
-fig_fit_e_coli = go.Figure()
-show_legend = True
-for x, y in zip(xs, ys):
-    fig_fit_e_coli.add_trace(
+
+def ecoli():
+    fig = go.Figure()
+    f = join(
+        "~", "toxicity_kuleuven", "data", "nut_gradient", "pooled_df_joint_metadata.csv"
+    )
+    pooled_meta = pd.read_csv(f)
+    f = join("~", "toxicity_kuleuven", "data", "nut_gradient", "measurement_data.csv")
+    raw = pd.read_csv(f)
+    strain = "Escherichia coli  sfGFP:pGDPI CAT"
+    conc = 1
+    filter = (pooled_meta["project"] == "240903_fran") & (
+        pooled_meta["Experiment description"].isin(
+            [
+                "Repeat 1 of TSB gradient experiment with all strains.",
+                "Repeat 2 of TSB gradient experiment with all strains.",
+                "Repeat 3 of TSB gradient experiment with all strains.",
+            ]
+        )
+        & (pooled_meta["cs_conc"] == conc)
+        & (pooled_meta["species"] == strain)
+    )
+
+    meta = pooled_meta[filter]
+    xs = [raw[raw["linegroup"] == lg]["time"].to_numpy() for lg in meta["linegroup"]]
+    ys = [
+        raw[raw["linegroup"] == lg]["measurement"].to_numpy()
+        for lg in meta["linegroup"]
+    ]
+    sim = odeint(logistic, [0.0019], xs[0], args=(1.3, 1.1))[:, 0]
+    for i, (x, y) in enumerate(zip(xs, ys)):
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=np.log(y),
+                name="<i>Escherichia coli</i><br>sfGFP:pGDPI CAT",
+                line=dict(color=colors["ecoli"]),
+                showlegend=i == 0,
+            )
+        )
+    fig.add_trace(
         go.Scatter(
-            x=x,
-            y=y,
-            name="Escherichia coli  <br>sfGFP:pGDPI CAT",
-            showlegend=show_legend,
-            line=dict(color=colors["ecoli"]),
+            x=xs[0],
+            y=np.log(sim),
+            name="Logistic fit",
+            line=dict(color=colors["ecoli"], dash="dash"),
+            showlegend=True,
         )
     )
-    show_legend = False
-fig_fit_e_coli.add_trace(
-    go.Scatter(x=ts, y=sim[:, 0], name="Model", line=dict(color="black", dash="dash"))
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", range=[0, 48], dtick=8),
+        yaxis=dict(title="OD", range=[0, 1.2], dtick=0.2),
+        width=width,
+        height=height,
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=1,
+        buttom_margin=0,
+        left_margin=40,
+        top_margin=0,
+        right_margin=0,
+    )
+    fig.write_image("../plots/experiments/e_fit.svg")
+    fig_st_e.add_trace(fig["data"][0])
+    fig_st_e.add_trace(fig["data"][1])
+    fig_st_e.add_trace(fig["data"][2])
+
+
+fig_st_e.update_layout(
+    xaxis=dict(title="Time [h]", ticks="inside"),
+    yaxis=dict(title="OD", ticks="inside"),
+    width=2 * width,
+    height=2 * height,
+    showlegend=False,
 )
-fig_fit_e_coli = style_plot(fig_fit_e_coli)
-fig_fit_e_coli.update_layout(width=width * 2, height=height)
-fig_fit_e_coli.update_xaxes(title="Time [h]"), fig_fit_e_coli.update_yaxes(
-    title="Abundance [OD]"
+
+st()
+ecoli()
+fig_st_e = style_plot(
+    fig_st_e,
+    line_thickness=1.5,
+    buttom_margin=30,
+    left_margin=30,
+    top_margin=30,
+    right_margin=30,
 )
-fig_fit_e_coli.write_image("../plots/experiments/e_coli_fit.svg")
-fig_total.update_layout(title="Mono-culture growth curves 100% CFA")
-fig_total = style_plot(fig_total, marker_size=1.5, line_thickness=2)
-fig_total.update_layout(width=width, height=height * 0.7)
-fig_total.update_xaxes(title="Time [h]"), fig_total.update_yaxes(title="Abundance [OD]")
-fig_total.write_image("../plots/experiments/e_coli_st.svg")
+fig_st_e.write_image("../plots/experiments/e_st_fit.svg")
