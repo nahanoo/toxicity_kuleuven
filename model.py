@@ -47,7 +47,7 @@ class E_coli:
 class Experiment:
     def __init__(self):
         # transfers
-        self.total_transfers = 5
+        self.total_transfers = 10
         # dilution factor
         self.dilution_factor = 100
         # transfer period
