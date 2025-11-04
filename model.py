@@ -148,7 +148,7 @@ class Experiment:
                 x=self.time / 24,
                 y=self.E.N,
                 mode="lines",
-                name="E_coli",
+                name="<i>E. coli</i>",
                 line=dict(color=colors["ecoli"]),
             )
         )
@@ -157,7 +157,7 @@ class Experiment:
                 x=self.time / 24,
                 y=self.S.N,
                 mode="lines",
-                name="Salmonella",
+                name="<i>ST</i>",
                 line=dict(color=colors["st"]),
             )
         )
@@ -168,7 +168,14 @@ class Experiment:
             height=height,
             showlegend=False,
         )
-        fig = style_plot(fig, line_thickness=1.7, font_size=11)
+        fig = style_plot(
+            fig,
+            line_thickness=1.7,
+            left_margin=30,
+            top_margin=0,
+            buttom_margin=30,
+            right_margin=0,
+        )
         fig.write_image("plots/transfers/" + fname + ".svg")
 
     def plot_cefo(self, fname):
@@ -179,7 +186,7 @@ class Experiment:
                 y=self.cefo,
                 mode="lines",
                 name="Cefotaxime",
-                line=dict(color="black"),
+                line=dict(color=colors["cf"]),
             )
         )
 
@@ -187,17 +194,25 @@ class Experiment:
             xaxis=dict(
                 # range=[0, max(self.time)],
                 # dtick=6,
-                title="Time h",
+                title="Time [h]",
             ),
             yaxis=dict(
                 # range=[-10, 0.3],
                 # dtick=0.05,
-                title="Cefotaxime concentration [µg/mL]",
+                title="Cf [µg/mL]",
             ),
             width=width,
             height=height,
         )
-        fig = style_plot(fig, line_thickness=1.7)
+        fig = style_plot(
+            fig,
+            line_thickness=1.7,
+            left_margin=30,
+            top_margin=0,
+            buttom_margin=25,
+            right_margin=0,
+        )
+        fig.update_layout(width=width * 0.45)
         fig.write_image("plots/transfers/" + fname + ".svg")
 
     def plot_chloram(self, fname):
@@ -208,7 +223,7 @@ class Experiment:
                 y=self.chloram,
                 mode="lines",
                 name="Cefotaxime",
-                line=dict(color="black"),
+                line=dict(color=colors["ch"]),
             )
         )
 
@@ -221,10 +236,18 @@ class Experiment:
             yaxis=dict(
                 # range=[-10, 18],
                 # dtick=4,
-                title="Chloramphenicol concentration [µg/mL]",
+                title="Ch [µg/mL]",
             ),
             width=width,
             height=height,
         )
-        fig = style_plot(fig, line_thickness=1.7)
+        fig = style_plot(
+            fig,
+            line_thickness=1.7,
+            left_margin=25,
+            top_margin=0,
+            buttom_margin=25,
+            right_margin=0,
+        )
+        fig.update_layout(width=width * 0.45)
         fig.write_image("plots/transfers/" + fname + ".svg")

@@ -2,13 +2,16 @@
 #
 # Reserve 1 CPUs for this job
 #
-# SBATCH --cpus-per-task=4
+# SBATCH --cpus-per-task=16
 # SBATCH --mem=4G
 #
 # Request it to run this for DD:HH:MM with ?G per core
 #
-# SBATCH --time=24:00:00
+# SBATCH --time=00:30:00
 #
+import sys
+
+sys.path.append("/users/eulrich/toxicity_kuleuven")
 from model import Experiment
 import numpy as np
 from scipy.integrate import odeint
@@ -29,6 +32,7 @@ coolwarm_colorscale = [
 def no_antibiotics():
     # Setting antibitoics inflow to 0
     e = Experiment()
+    e.total_transfers = 4
     e.M_cefo = 0
     e.M_chloram = 0
     e.transfer()
@@ -50,6 +54,7 @@ def s_protects_e():
 
     # Case considering degradation
     e = Experiment()
+    e.total_transfers = 1
     e.M_chloram = 0
     e.transfer()
     e.plot_N("s_protects_e/abundance")
@@ -68,6 +73,7 @@ def e_protects_s():
 
     e = Experiment()
     e.M_cefo = 0
+    e.total_transfers = 1
     # Case with degradation
     e.transfer()
     e.plot_N("e_protects_s/abundance")
@@ -89,40 +95,12 @@ def two_sided_protection():
     e.plot_chloram("two_sided_protection/chloram")
 
 
-def run_experiment(rE, rS):
-    e = Experiment()
-    e.E.r = rE
-    e.S.r = rS
-    e.M_chloram = 0
-    e.total_transfers = 50
-    e.transfer()
-    if e.E.N[-1] < 1e-6:
-        e.E.N[-1] = 0
-    if e.S.N[-1] < 1e-6:
-        e.S.N[-1] = 0
-    if (e.E.N[-1] == 0) & (e.S.N[-1] == 0):
-        return None
-    else:
-        return e.E.N[-1] / (e.E.N[-1] + e.S.N[-1])
-
-
-def co_existence_s_protects_e():
-    rs = np.linspace(0, 1.5, 150)
-    zs = np.zeros((len(rs), len(rs)))
-
-    # Parallel computation
-    results = Parallel(n_jobs=-1)(
-        delayed(run_experiment)(rE, rS) for rE in rs for rS in rs
-    )
-
-    # Reshape back to matrix form
-    zs = np.array(results).reshape(len(rs), len(rs))
-
+def plot_competition(rE, rS, zs, title):
     fig = go.Figure()
     fig.add_trace(
         go.Contour(
-            x=rs,
-            y=rs,
+            x=rE,
+            y=rS,
             z=zs,
             colorscale=coolwarm_colorscale,
             colorbar=dict(
@@ -131,25 +109,119 @@ def co_existence_s_protects_e():
                 dtick=0.2,
                 tickfont=dict(size=11),
             ),
-            contours=dict(showlines=False, start=0, end=1, size=0.2),
-            showscale=False,
+            contours=dict(showlines=False, start=0, end=1, size=0.1),
         )
     )
     fig.update_layout(
         xaxis=dict(
-            title="EcN [1/h]",
-            ticks="inside",
+            range=[0, max(rE)],
+            dtick=0.2,
+            title="Maximum growth rate <i>E. coli</i> [1/h]",
         ),
         yaxis=dict(
-            title="ST [1/h]",
-            ticks="inside",
+            range=[0, max(rS)],
+            dtick=0.2,
+            title="Maximum growth rate <i>ST</i> [1/h]",
         ),
-        # title="<i>Salmonella</i> protects <i>E. coli</i>",
-        width=width,
+        title=title,
+        width=height,
         height=height,
     )
-    fig = style_plot(fig, line_thickness=1, left_margin=30, font_size=11)
+    fig = style_plot(
+        fig,
+        line_thickness=1.7,
+        left_margin=30,
+        top_margin=0,
+        buttom_margin=25,
+        right_margin=0,
+    )
+    fig.update_layout(
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False),
+    )
+    return fig
+
+
+def get_ratio(E, S):
+    if E < 1e-6:
+        E = 0
+    if S < 1e-6:
+        S = 0
+    if (E == 0) & (S == 0):
+        return None
+    else:
+        return E
+
+
+def competition_simulations():
+    def no_antibiotics(rE, rS):
+        e = Experiment()
+        e.M_cefo = 0
+        e.M_chloram = 0
+        e.E.r = rE
+        e.S.r = rS
+        e.total_transfers = 10
+        e.transfer()
+        return get_ratio(e.E.N[-1], e.S.N[-1])
+
+    def s_protects_e(rE, rS):
+        e = Experiment()
+        e.M_chloram = 0
+        e.E.r = rE
+        e.S.r = rS
+        e.total_transfers = 10
+        e.transfer()
+        return get_ratio(e.E.N[-1], e.S.N[-1])
+
+    def e_protects_s(rE, rS):
+        e = Experiment()
+        e.M_cefo = 0
+        e.E.r = rE
+        e.S.r = rS
+        e.total_transfers = 10
+        e.transfer()
+        return get_ratio(e.E.N[-1], e.S.N[-1])
+
+    def two_sided_protection(rE, rS):
+        e = Experiment()
+        e.E.r = rE
+        e.S.r = rS
+        e.total_transfers = 10
+        e.transfer()
+        return get_ratio(e.E.N[-1], e.S.N[-1])
+
+    rs = np.linspace(0, 1.5, 10)
+    zs = np.zeros((len(rs), len(rs)))
+    results = Parallel(n_jobs=-1)(
+        delayed(no_antibiotics)(rE, rS) for rE in rs for rS in rs
+    )
+    zs = np.array(results).reshape(len(rs), len(rs))
+    fig = plot_competition(rs, rs, zs, "No antibiotics")
+    fig.write_image("plots/coexistence/no_antibiotics/growth_rates.svg")
+
+    zs = np.zeros((len(rs), len(rs)))
+    results = Parallel(n_jobs=-1)(
+        delayed(s_protects_e)(rE, rS) for rE in rs for rS in rs
+    )
+    zs = np.array(results).reshape(len(rs), len(rs))
+    fig = plot_competition(rs, rs, zs, "<i>Salmonella</i> protects <i>E. coli</i>")
     fig.write_image("plots/coexistence/s_protects_e/growth_rates.svg")
 
+    zs = np.array(results).reshape(len(rs), len(rs))
+    results = Parallel(n_jobs=-1)(
+        delayed(e_protects_s)(rE, rS) for rE in rs for rS in rs
+    )
+    zs = np.array(results).reshape(len(rs), len(rs))
+    fig = plot_competition(rs, rs, zs, "<i>E. coli</i> protects <i>Salmonella</i>")
+    fig.write_image("plots/coexistence/e_protects_s/growth_rates.svg")
 
-co_existence_s_protects_e()
+    zs = np.array(results).reshape(len(rs), len(rs))
+    results = Parallel(n_jobs=-1)(
+        delayed(two_sided_protection)(rE, rS) for rE in rs for rS in rs
+    )
+    zs = np.array(results).reshape(len(rs), len(rs))
+    fig = plot_competition(rs, rs, zs, "Two sided protection")
+    fig.write_image("plots/coexistence/two_sided/growth_rates.svg")
+
+
+competition_simulations()
