@@ -16,6 +16,8 @@ def logistic(y, t, v, K):
     return dN
 
 
+font_size = 11
+
 fig_st_e = go.Figure()
 f = join("~", "toxicity_kuleuven", "data", "nut_gradient", "measurement_data.csv")
 raw = pd.read_csv(f)
@@ -107,19 +109,21 @@ def st_1():
         showarrow=False,
     )
     fig.update_layout(
-        xaxis=dict(title="Time [h]"),
-        yaxis=dict(title="OD", type="log"),
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", type="log", ticks="inside"),
         width=width,
         height=height,
         showlegend=False,
+        title="ST 100% CFA medium",
     )
     fig = style_plot(
         fig,
         line_thickness=1,
-        buttom_margin=0,
-        left_margin=40,
-        top_margin=0,
-        right_margin=0,
+        buttom_margin=30,
+        left_margin=30,
+        top_margin=30,
+        right_margin=30,
+        font_size=font_size,
     )
     fig.write_image("../plots/experiments/st_fit_conc_1.svg")
 
@@ -180,19 +184,21 @@ def st_025():
         showarrow=False,
     )
     fig.update_layout(
-        xaxis=dict(title="Time [h]"),
-        yaxis=dict(title="OD", type="log"),
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", type="log", ticks="inside"),
         width=width,
         height=height,
         showlegend=False,
+        title="ST 25% CFA medium",
     )
     fig = style_plot(
         fig,
         line_thickness=1,
-        buttom_margin=0,
-        left_margin=40,
-        top_margin=0,
-        right_margin=0,
+        buttom_margin=30,
+        left_margin=30,
+        top_margin=30,
+        right_margin=30,
+        font_size=font_size,
     )
     fig.write_image("../plots/experiments/st_fit_conc_025.svg")
 
@@ -253,19 +259,21 @@ def ecoli_1():
         showarrow=False,
     )
     fig.update_layout(
-        xaxis=dict(title="Time [h]"),
-        yaxis=dict(title="OD", type="log"),
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", type="log", ticks="inside"),
         width=width,
         height=height,
         showlegend=False,
+        title="EcN 100% CFA medium",
     )
     fig = style_plot(
         fig,
         line_thickness=1,
-        buttom_margin=0,
-        left_margin=40,
-        top_margin=0,
-        right_margin=0,
+        buttom_margin=30,
+        left_margin=30,
+        top_margin=30,
+        right_margin=30,
+        font_size=font_size,
     )
     fig.write_image("../plots/experiments/ecoli_fit_conc_1.svg")
 
@@ -326,19 +334,21 @@ def ecoli_025():
         showarrow=False,
     )
     fig.update_layout(
-        xaxis=dict(title="Time [h]"),
-        yaxis=dict(title="OD", type="log"),
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", type="log", ticks="inside"),
         width=width,
         height=height,
         showlegend=False,
+        title="EcN 25% CFA medium",
     )
     fig = style_plot(
         fig,
         line_thickness=1,
-        buttom_margin=0,
-        left_margin=40,
-        top_margin=0,
-        right_margin=0,
+        buttom_margin=30,
+        left_margin=30,
+        top_margin=30,
+        right_margin=30,
+        font_size=font_size,
     )
     fig.write_image("../plots/experiments/ecoli_fit_conc_025.svg")
 
