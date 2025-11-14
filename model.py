@@ -7,17 +7,17 @@ from style import *
 class Salmonella:
     def __init__(self):
         # max. growth rate
-        self.r = 1.1
+        self.r = 1.8
         # Carryin capacity
-        self.K = 1
+        self.K = 3e9
         # toxin monod constance
         self.KT = 0.32
         # toxin degradation rate
         self.a = 1
         # detoxification factor
-        self.q = 0.05
+        self.q = 1e8
         # Initial population density
-        self.N0 = 0.1
+        self.N0 = 1e6
         # Population density
         self.N = np.array([])
         # passive uptake rate
@@ -26,19 +26,19 @@ class Salmonella:
 class E_coli:
     def __init__(self):
         # max. growth rate
-        self.r = 1.2
+        self.r = 1.8
         # Carrying capacity
-        self.K = 1
+        self.K = 3e9
         # toxin monod constance
         self.KT = 0.03
         # toxin degradation rate
         self.a = 1
         # detoxification factor
-        self.q = 0.05
+        self.q = 3e8
         # cefo death rate
-        self.u = 1
+        self.u = 2.1
         # Initial population density
-        self.N0 = 0.1
+        self.N0 = 1e6
         # population density
         self.N = np.array([])
 
@@ -47,7 +47,7 @@ class E_coli:
 class Experiment:
     def __init__(self):
         # transfers
-        self.total_transfers = 10
+        self.total_transfers = 4
         # dilution factor
         self.dilution_factor = 100
         # transfer period
@@ -148,7 +148,7 @@ class Experiment:
                 x=self.time / 24,
                 y=self.E.N,
                 mode="lines",
-                name="<i>E. coli</i>",
+                name="EcN",
                 line=dict(color=colors["ecoli"]),
             )
         )
@@ -157,24 +157,41 @@ class Experiment:
                 x=self.time / 24,
                 y=self.S.N,
                 mode="lines",
-                name="<i>ST</i>",
+                name="ST",
                 line=dict(color=colors["st"]),
             )
         )
+
+        powers = [0, 2.5, 5, 7.5, 10]
+        fig.update_xaxes(title="Time (days)", ticks="inside")
         fig.update_layout(
-            xaxis=dict(title="Days", ticks="inside"),
-            yaxis=dict(title="Abundance", ticks="inside"),
-            width=width,
-            height=height,
+            width=200,
+            height=200,
             showlegend=False,
+        )
+        fig.update_yaxes(
+            type="log",
+            range=[0, 10],  # log10-space: shows 10^0 … 10^10
+            tickmode="array",
+            tickvals=[10**p for p in powers],
+            ticktext=[
+                "10⁰",
+                "10²·⁵",
+                "10⁵",
+                "10⁷·⁵",
+                "10¹⁰",
+            ],  # or use Unicode superscripts for static export
+            ticks="inside",
+            title="CFUs/mL",
+            tickformat="power",  # clear any previous '.0e'
         )
         fig = style_plot(
             fig,
             line_thickness=1.7,
             left_margin=30,
-            top_margin=0,
+            top_margin=30,
             buttom_margin=30,
-            right_margin=0,
+            right_margin=30,
         )
         fig.write_image("plots/transfers/" + fname + ".svg")
 
@@ -186,33 +203,28 @@ class Experiment:
                 y=self.cefo,
                 mode="lines",
                 name="Cefotaxime",
-                line=dict(color=colors["cf"]),
+                line=dict(color=colors["light_black"]),
             )
         )
 
         fig.update_layout(
             xaxis=dict(
-                # range=[0, max(self.time)],
-                # dtick=6,
                 title="Time [h]",
             ),
             yaxis=dict(
-                # range=[-10, 0.3],
-                # dtick=0.05,
                 title="Cf [µg/mL]",
             ),
-            width=width,
-            height=height,
+            width=180,
+            height=180,
         )
         fig = style_plot(
             fig,
             line_thickness=1.7,
             left_margin=30,
-            top_margin=0,
+            top_margin=30,
             buttom_margin=25,
-            right_margin=0,
+            right_margin=30,
         )
-        fig.update_layout(width=width * 0.45)
         fig.write_image("plots/transfers/" + fname + ".svg")
 
     def plot_chloram(self, fname):
@@ -223,7 +235,7 @@ class Experiment:
                 y=self.chloram,
                 mode="lines",
                 name="Cefotaxime",
-                line=dict(color=colors["ch"]),
+                line=dict(color=colors["light_black"]),
             )
         )
 
@@ -238,15 +250,15 @@ class Experiment:
                 # dtick=4,
                 title="Ch [µg/mL]",
             ),
-            width=width,
-            height=height,
+            width=180,
+            height=180,
         )
         fig = style_plot(
             fig,
             line_thickness=1.7,
-            left_margin=25,
-            top_margin=0,
-            buttom_margin=25,
+            left_margin=30,
+            top_margin=30,
+            buttom_margin=30,
             right_margin=0,
         )
         fig.update_layout(width=width * 0.45)
