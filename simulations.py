@@ -78,6 +78,9 @@ def s_protects_e():
     e.plot_N("s_protects_e/abundance")
 
 
+s_protects_e()
+
+
 def e_protects_s():
     # No degradation
     e = Experiment()
@@ -107,23 +110,17 @@ def e_protects_s():
 
 
 def two_sided_protection():
-    pass
-
-
-e = Experiment()
-e.total_transfers = 4
-# e.E.r = 1.8
-# e.S.r = 1.5
-# e.E.u = 1.8
-# e.S.a = 0.1
-e.E.r = 1.8
-e.S.r = 1.5
-e.E.u = 1.9
-e.S.a = 0.1
-e.transfer()
-e.plot_N("two_sided_protection/abundance")
-e.plot_cefo("two_sided_protection/cefotaxime")
-e.plot_chloram("two_sided_protection/chloram")
-
-
-two_sided_protection()
+    e = Experiment()
+    e.total_transfers = 4
+    # e.E.r = 1.8
+    # e.S.r = 1.5
+    # e.E.u = 1.8
+    # e.S.a = 0.1
+    e.E.r = 1.8
+    e.S.r = 1.5
+    e.E.u = 1.9
+    e.S.a = 0.1
+    e.transfer()
+    e.plot_N("two_sided_protection/abundance")
+    e.plot_cefo("two_sided_protection/cefotaxime")
+    e.plot_chloram("two_sided_protection/chloram")
