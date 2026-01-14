@@ -100,22 +100,34 @@ def logistic_curve(log_dose, top, bottom, log_ic50, hill_slope):
 
 
 def fit_IC50():
-    strain = "ST mCherry CTX"
+    strain = "ST sfGFP CAT"
     initial_guess = [1, 0, -4, 1]
-    params, covariance = curve_fit(
-        logistic_curve,
-        np.log(concentrations[1:]),
-        np.average(response[strain], axis=0),
-        p0=initial_guess,
-    )
-
-    top, bottom, log_ic50, hill_slope = params
-    ic50 = np.exp(log_ic50)  # Convert log_IC50 back to linear scale
-    print(ic50)
     log_dose_fit = np.linspace(
         np.log(concentrations[1:]).min(), np.log(concentrations[1:]).max(), 100
     )
-    response_fit = logistic_curve(log_dose_fit, *params)
+    try:
+        params, covariance = curve_fit(
+            logistic_curve,
+            np.log(concentrations[1:]),
+            np.average(response[strain], axis=0),
+            p0=initial_guess,
+        )
+        top, bottom, log_ic50, hill_slope = params
+        response_fit = logistic_curve(log_dose_fit, *params)
+        ic50 = np.exp(log_ic50)  # Convert log_IC50 back to linear scale
+        print(ic50)
+        fig.add_vline(
+            x=ic50,
+            line_color="black",
+            line_dash="dash",
+            # annotation=dict(text="IC50"),
+            line_width=1,
+        )
+
+    except RuntimeError:
+        ic50 = None
+        response_fit = [None] * len(log_dose_fit)
+
     fig = go.Figure()
     show_legend = True
     for i, repeat in enumerate(repeats):
@@ -124,7 +136,7 @@ def fit_IC50():
                 x=concentrations[1:],
                 y=response[strain][i],
                 mode="markers",
-                marker=dict(color=colors["st"]),
+                marker=dict(color=colors["light_black"]),
                 name="Data",
                 showlegend=show_legend,
             )
@@ -134,26 +146,19 @@ def fit_IC50():
         go.Scatter(
             x=np.exp(log_dose_fit),
             y=response_fit,
-            line=dict(color=colors["st"], dash="dash"),
+            line=dict(color=colors["light_black"], dash="dash"),
             name="Model",
         )
     )
-    fig.add_vline(
-        x=ic50,
-        line_color="black",
-        line_dash="dash",
-        # annotation=dict(text="IC50"),
-        line_width=1,
+
+    fig.update_xaxes(
+        title="Chloramphenicol [µL/mL]", type="log", dtick=1, ticks="inside"
     )
-    fig.update_xaxes(title="Cefotaxime [µL/mL]", type="log", dtick=1, ticks="inside")
     fig.update_yaxes(title="Response in %", ticks="inside")
-    fig.update_layout(
-        width=width,
-        height=height,
-        showlegend=False,
-        # title="EcN sfGFP CAT Response curve"
+    fig.update_layout(width=180, height=180, showlegend=False, title=strain)
+    fig = style_plot(
+        fig, marker_size=5, line_thickness=2, left_margin=30, top_margin=30
     )
-    fig = style_plot(fig, marker_size=5, line_thickness=2, left_margin=30)
     fig.write_image("../plots/experiments/st_chloram_response_curve_fit.svg")
 
 

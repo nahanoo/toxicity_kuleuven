@@ -76,8 +76,8 @@ def st_1():
             x=np.concatenate([x, x[::-1]]),
             y=np.concatenate([y_upper, y_lower[::-1]]),
             fill="toself",
-            fillcolor=colors["st_error"],
-            line=dict(color=colors["st_error"]),
+            fillcolor=colors["light_gray"],
+            line=dict(color=colors["light_gray"]),
             hoverinfo="skip",
             showlegend=False,
         )
@@ -87,7 +87,7 @@ def st_1():
             x=x,
             y=y,
             name="<i>Salmonella Typhimurium</i> <br>mcherry:pGDPI CTX-M-15",
-            line=dict(color=colors["st"]),
+            line=dict(color=colors["light_black"]),
             showlegend=False,
         )
     )
@@ -97,7 +97,7 @@ def st_1():
             y=[s for s in sim if s <= max(y)],
             name="Logistic fit",
             mode="lines",
-            line=dict(color=colors["st"], dash="dot"),
+            line=dict(color="black", dash="dot"),
             showlegend=True,
         )
     )
@@ -111,14 +111,13 @@ def st_1():
     fig.update_layout(
         xaxis=dict(title="Time [h]", ticks="inside"),
         yaxis=dict(title="OD", type="log", ticks="inside"),
-        width=width,
-        height=height,
+        width=180,
+        height=180,
         showlegend=False,
         title="ST 100% CFA medium",
     )
     fig = style_plot(
         fig,
-        line_thickness=1,
         buttom_margin=30,
         left_margin=30,
         top_margin=30,
@@ -151,8 +150,8 @@ def st_025():
             x=np.concatenate([x, x[::-1]]),
             y=np.concatenate([y_upper, y_lower[::-1]]),
             fill="toself",
-            fillcolor=colors["st_error"],
-            line=dict(color=colors["st_error"]),
+            fillcolor=colors["light_gray"],
+            line=dict(color=colors["light_gray"]),
             hoverinfo="skip",
             showlegend=False,
         )
@@ -162,7 +161,7 @@ def st_025():
             x=x,
             y=y,
             name="<i>Salmonella Typhimurium</i> <br>mcherry:pGDPI CTX-M-15",
-            line=dict(color=colors["st"]),
+            line=dict(color=colors["light_black"]),
             showlegend=False,
         )
     )
@@ -172,7 +171,7 @@ def st_025():
             y=[s for s in sim if s <= max(y)],
             name="Logistic fit",
             mode="lines",
-            line=dict(color=colors["st"], dash="dot"),
+            line=dict(color=colors["light_black"], dash="dot"),
             showlegend=True,
         )
     )
@@ -226,8 +225,8 @@ def ecoli_1():
             x=np.concatenate([x, x[::-1]]),
             y=np.concatenate([y_upper, y_lower[::-1]]),
             fill="toself",
-            fillcolor=colors["ecoli_error"],
-            line=dict(color=colors["ecoli_error"]),
+            fillcolor=colors["light_gray"],
+            line=dict(color=colors["light_gray"]),
             hoverinfo="skip",
             showlegend=False,
         )
@@ -237,7 +236,7 @@ def ecoli_1():
             x=x,
             y=y,
             name="<i>Escherichia coli</i> <br>sfGFP:pGDPI CAT",
-            line=dict(color=colors["ecoli"]),
+            line=dict(color=colors["light_black"]),
             showlegend=False,
         )
     )
@@ -247,7 +246,7 @@ def ecoli_1():
             y=[s for s in sim if s <= max(y)],
             name="Logistic fit",
             mode="lines",
-            line=dict(color=colors["ecoli"], dash="dot"),
+            line=dict(color="black", dash="dot"),
             showlegend=True,
         )
     )
@@ -261,14 +260,13 @@ def ecoli_1():
     fig.update_layout(
         xaxis=dict(title="Time [h]", ticks="inside"),
         yaxis=dict(title="OD", type="log", ticks="inside"),
-        width=width,
-        height=height,
+        width=180,
+        height=180,
         showlegend=False,
         title="EcN 100% CFA medium",
     )
     fig = style_plot(
         fig,
-        line_thickness=1,
         buttom_margin=30,
         left_margin=30,
         top_margin=30,
@@ -301,8 +299,8 @@ def ecoli_025():
             x=np.concatenate([x, x[::-1]]),
             y=np.concatenate([y_upper, y_lower[::-1]]),
             fill="toself",
-            fillcolor=colors["ecoli_error"],
-            line=dict(color=colors["ecoli_error"]),
+            fillcolor=colors["light_gray"],
+            line=dict(color=colors["light_gray"]),
             hoverinfo="skip",
             showlegend=False,
         )
@@ -312,7 +310,7 @@ def ecoli_025():
             x=x,
             y=y,
             name="<i>Escherichia coli</i> <br>sfGFP:pGDPI CAT",
-            line=dict(color=colors["ecoli"]),
+            line=dict(color=colors["light_black"]),
             showlegend=False,
         )
     )
@@ -322,7 +320,7 @@ def ecoli_025():
             y=[s for s in sim if s <= max(y)],
             name="Logistic fit",
             mode="lines",
-            line=dict(color=colors["ecoli"], dash="dot"),
+            line=dict(color=colors["light_black"], dash="dot"),
             showlegend=True,
         )
     )

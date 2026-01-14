@@ -144,7 +144,7 @@ def fit_IC50():
                 x=concentrations[1:],
                 y=response[strain][i],
                 mode="markers",
-                marker=dict(color=colors["ecoli"]),
+                marker=dict(color=colors["light_black"]),
                 name="Data",
                 showlegend=show_legend,
             )
@@ -154,7 +154,7 @@ def fit_IC50():
         go.Scatter(
             x=np.exp(log_dose_fit),
             y=response_fit,
-            line=dict(color=colors["ecoli"], dash="dash"),
+            line=dict(color=colors["light_black"], dash="dash"),
             name="Model",
         )
     )
@@ -167,8 +167,8 @@ def fit_IC50():
     fig.update_xaxes(title="Cefotaxime [µL/mL]", type="log", dtick=1, ticks="inside")
     fig.update_yaxes(title="Response in %", ticks="inside")
     fig.update_layout(
-        width=width,
-        height=height,
+        width=180,
+        height=180,
         # title="EcN sfGFP CAT Response curve",
         showlegend=False,
     )
