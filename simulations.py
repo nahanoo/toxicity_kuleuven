@@ -27,24 +27,48 @@ coolwarm_colorscale = [
 
 
 def no_antibiotics():
-    # Setting antibitoics inflow to 0
-    e = Experiment()
-    e.E.r = 1.8
-    e.S.r = 1.5
-    e.total_transfers = 4
-    e.M_cefo = 0
-    e.M_chloram = 0
-    e.transfer()
-    e.plot_N("no_antibiotics/e_wins")
+    # Setting antibiotics inflow to 0
+    def transfer(r_e, r_s):
+        e = Experiment()
+        e.E.r = r_e
+        e.S.r = r_s
+        e.total_transfers = 4
+        e.M_cefo = 0
+        e.M_chloram = 0
+        e.transfer()
+        return e.plot_N()
 
-    e = Experiment()
-    e.E.r = 1.5
-    e.S.r = 1.8
-    e.total_transfers = 4
-    e.M_cefo = 0
-    e.M_chloram = 0
-    e.transfer()
-    e.plot_N("no_antibiotics/s_wins")
+    # 100% CFA
+    r_e = 1.048
+    r_s = 0.87
+    fig = transfer(r_e, r_s)
+    fig.update_layout(
+        title="No antibiotics: 100% CFA<br>r_EC: {:.3f}, r_ST: {:.3f}".format(r_e, r_s),
+        showlegend=True,
+        legend=dict(
+            x=0.4,
+            y=0.1,
+            bgcolor="rgba(0, 0, 0, 0)",
+        ),
+    )
+    fig = style_plot(fig, top_margin=40)
+    fig.write_image("plots/transfers/no_antibiotics/ecn_st_100_cfa.svg")
+
+    # 20% CFA
+    r_e = 0.831
+    r_s = 0.915
+    fig = transfer(r_e, r_s)
+    fig.update_layout(
+        title="No antibiotics: 20% CFA<br>r_EC: {:.3f}, r_ST: {:.3f}".format(r_e, r_s),
+        showlegend=True,
+        legend=dict(
+            x=0.4,
+            y=0.1,
+            bgcolor="rgba(0, 0, 0, 0)",
+        ),
+    )
+    fig = style_plot(fig, top_margin=40)
+    fig.write_image("plots/transfers/no_antibiotics/ecn_st_20_cfa.svg")
 
 
 def s_protects_e():
@@ -76,9 +100,6 @@ def s_protects_e():
     e.M_chloram = 0
     e.transfer()
     e.plot_N("s_protects_e/abundance")
-
-
-s_protects_e()
 
 
 def e_protects_s():
