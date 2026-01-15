@@ -99,151 +99,298 @@ def net_growth_chloramphenicol():
     fig.write_image("plots/isoclines/chloramphenicol.svg")
 
 
-def sweep_growth_rates():
-    EXTINCT = 1e5
-
-    def run_one(r_e, r_s):
+def no_antibiotics():
+    def transfer(r_e, r_s):
         e = Experiment()  # construct in worker
         e.E.r, e.S.r = r_e, r_s
-        e.E.u = 2.1
         e.M_cefo = 0
-        # e.M_chloram = 0
+        e.M_chloram = 0
         e.total_transfers = 4
         e.transfer()
         E = e.E.N[-1]
         S = e.S.N[-1]
-        # extinction threshold
-        E = None if E < EXTINCT else E
-        S = None if S < EXTINCT else S
-        if (E is None) and (S is not None):
-            ratio = 0
-        elif (E is not None) and (S is None):
-            ratio = 1
-        elif (E is None) and (S is None):
-            ratio = None
-        else:
-            ratio = E / (E + S)
-        return E, S, ratio
+        return E, S
 
-    rs_E = np.linspace(1, 1.8, 20)
-    rs_S = np.linspace(0, 1.8, 20)
-    n = len(rs_E)
+    rs_E = np.linspace(0, 1, 20)
+    rs_S = np.linspace(0, 1, 20)
 
     results = Parallel(
         n_jobs=-1, backend="loky", prefer="processes", batch_size="auto"
-    )(delayed(run_one)(r_e, r_s) for r_e in rs_E for r_s in rs_S)
+    )(delayed(transfer)(r_e, r_s) for r_e in rs_E for r_s in rs_S)
+    E, S = map(np.array, zip(*results))
 
-    E_flat, S_flat, R_flat = map(np.array, zip(*results))
-    Z_E = E_flat.reshape(n, n).astype(np.float32)
-    Z_S = S_flat.reshape(n, n).astype(np.float32)
-    Z_ratio = R_flat.reshape(n, n).astype(np.float32)
+    # reshape to grids
+    n = len(rs_E)
+    E = E.astype(float).reshape(n, n).T
+    S = S.astype(float).reshape(n, n).T
+    thr = 1e5
+    alive_E = E > thr
+    alive_S = S > thr
+
+    both_alive = alive_E & alive_S
+    E_excludes = alive_E & (~alive_S)
+    S_excludes = (~alive_E) & alive_S
+
+    z = np.full_like(E, np.nan, dtype=float)
+    z[both_alive] = np.log10(E[both_alive] / S[both_alive])
+
+    # pick two colors (you can change these)
+    c_E_excludes = "#E76F51"  # dark (cividis-ish) for "E wins"
+    c_S_excludes = "#2A9D8F"  # bright (cividis-ish) for "S wins"
+
     fig = go.Figure()
+
+    # 1) Continuous (Cividis) where both alive
+    finite = np.isfinite(z)
+    zmin = float(np.nanmin(z)) if finite.any() else -1
+    zmax = float(np.nanmax(z)) if finite.any() else 1
+
     fig.add_trace(
-        go.Contour(
-            z=Z_ratio,
-            x=rs_S,
-            y=rs_E,
-            contours=dict(showlines=False),
-            colorscale=coolwarm_colorscale,
-            zmin=0,
-            zmax=1,
-            zauto=False,
-            ncontours=50,
-            colorbar=dict(len=0.5, y=0.2, thickness=12),
+        go.Heatmap(
+            x=rs_E,
+            y=rs_S,
+            z=z,
+            colorscale="Cividis",
+            zmin=zmin,
+            zmax=zmax,
+            colorbar=dict(
+                title="log10(E/S)",
+                title_side="right",
+                tickfont=dict(size=11),
+                y=0.5,
+                len=1,
+                thickness=12,
+            ),
+        )
+    )
+
+    fig.add_trace(
+        go.Heatmap(
+            x=rs_E,
+            y=rs_S,
+            z=np.where(E_excludes, 1.0, np.nan),
+            colorscale=[[0, c_E_excludes], [1, c_E_excludes]],
             showscale=False,
         )
     )
-    d_x = rs_S[rs_S >= 1]
-    d_y = rs_S[rs_S >= 1]
+
     fig.add_trace(
-        go.Scatter(
-            x=d_x,
-            y=d_y,
-            mode="lines",
-            line=dict(color="black", width=1.5, dash="dash"),
-            showlegend=False,
+        go.Heatmap(
+            x=rs_E,
+            y=rs_S,
+            z=np.where(S_excludes, 1.0, np.nan),
+            colorscale=[[0, c_S_excludes], [1, c_S_excludes]],
+            showscale=False,
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(title="Max. growth rate EcN (1/h)", ticks="inside", showgrid=False),
+        yaxis=dict(title="Max. growth rate ST (1/h)", ticks="inside", showgrid=False),
+        title="No antibiotics: final ratio EcN/ST",
+        width=220,
+        height=180,
+    )
+    fig = style_plot(fig, line_thickness=1.5, font_size=11)
+    fig.write_image("plots/contours/no_antibiotics/sweep_growth_rates.svg")
+
+
+def ceftoaxime_growth_rate_sweep():
+    def transfer(r_e, r_s):
+        e = Experiment()  # construct in worker
+        e.E.r, e.S.r = r_e, r_s
+        e.M_chloram = 0
+        e.total_transfers = 4
+        e.transfer()
+        E = e.E.N[-1]
+        S = e.S.N[-1]
+        return E, S
+
+    rs_E = np.linspace(0, 1, 20)  # e_r (should go on y)
+    rs_S = np.linspace(0, 1, 20)  # s_r (should go on x)
+
+    ne = len(rs_E)
+    ns = len(rs_S)
+
+    results = Parallel(
+        n_jobs=-1, backend="loky", prefer="processes", batch_size="auto"
+    )(delayed(transfer)(r_e, r_s) for r_e in rs_E for r_s in rs_S)
+    E, S = map(np.array, zip(*results))
+
+    # rows: r_e (y), cols: r_s (x)
+    E = E.astype(float).reshape(ne, ns)
+    S = S.astype(float).reshape(ne, ns)
+    thr = 1e5
+    alive_E = E > thr
+    alive_S = S > thr
+
+    both_alive = alive_E & alive_S
+    E_excludes = alive_E & (~alive_S)
+    S_excludes = (~alive_E) & alive_S
+
+    z = np.full_like(E, np.nan, dtype=float)
+    z[both_alive] = np.log10(E[both_alive] / S[both_alive])
+
+    # pick two colors (you can change these)
+    c_E_excludes = "#E76F51"  # dark (cividis-ish) for "E wins"
+    c_S_excludes = "#2A9D8F"  # bright (cividis-ish) for "S wins"
+
+    fig = go.Figure()
+
+    # 1) Continuous (Cividis) where both alive
+    finite = np.isfinite(z)
+    zmin = float(np.nanmin(z)) if finite.any() else -1
+    zmax = float(np.nanmax(z)) if finite.any() else 1
+
+    fig.add_trace(
+        go.Heatmap(
+            x=rs_S,
+            y=rs_E,
+            z=z,
+            colorscale="Cividis",
+            zmin=zmin,
+            zmax=zmax,
+            colorbar=dict(
+                title="log10(E/S)",
+                title_side="right",
+                tickfont=dict(size=11),
+                y=0.5,
+                len=1,
+                thickness=12,
+            ),
         )
     )
 
+    fig.add_trace(
+        go.Heatmap(
+            x=rs_E,
+            y=rs_S,
+            z=np.where(E_excludes, 1.0, np.nan),
+            colorscale=[[0, c_E_excludes], [1, c_E_excludes]],
+            showscale=False,
+        )
+    )
+
+    fig.add_trace(
+        go.Heatmap(
+            x=rs_E,
+            y=rs_S,
+            z=np.where(S_excludes, 1.0, np.nan),
+            colorscale=[[0, c_S_excludes], [1, c_S_excludes]],
+            showscale=False,
+        )
+    )
     fig.update_layout(
-        xaxis=dict(
-            title="Maximum growth rate ST (1/h)", ticks="inside", showgrid=False
-        ),
-        yaxis=dict(
-            title="Maximum growth rate EcN (1/h)", ticks="inside", showgrid=False
-        ),
-        width=180,
+        xaxis=dict(title="Max. growth rate ST (1/h)", ticks="inside", showgrid=False),
+        yaxis=dict(title="Max. growth rate EcN (1/h)", ticks="inside", showgrid=False),
+        title="Cf",
+        width=220,
         height=180,
     )
     fig = style_plot(fig, line_thickness=1.5, font_size=11)
     fig.write_image("plots/contours/s_protects_e/sweep_growth_rates.svg")
 
 
-def sweep_death_vs_degradation():
-
-    EXTINCT = 1e5
-
-    def run_one(beta, delta):
+def cefotaxime_degradation_rate_sweep():
+    def transfer(s_a, e_u):
         e = Experiment()  # construct in worker
-        # e.M_chloram = 0
-        e.E.r, e.S.r = 1.8, 1.5
-        e.E.u = 1
-        e.E.a = beta
-        e.S.a = beta
+        e.S.a = s_a  # ST max degradation rate
+        e.E.u = e_u  # EcN max degradation rate
+        e.M_chloram = 0
+        e.total_transfers = 4
         e.transfer()
-        E = e.E.N[-1]
-        S = e.S.N[-1]
-        E = None if E < EXTINCT else E
-        S = None if S < EXTINCT else S
-        if (E is None) and (S is not None):
-            ratio = 0
-        elif (E is not None) and (S is None):
-            ratio = 1
-        elif (E is None) and (S is None):
-            ratio = None
-        else:
-            ratio = E / (E + S)
-        return E, S, ratio
+        return e.E.N[-1], e.S.N[-1]
 
-    # Degradation rates
-    n = 100
-    betas = np.linspace(0, 1, n)
-
-    # Death rates
-    deltas = np.linspace(0, 2.5, n)
+    s_a = np.linspace(0, 1, 20)
+    e_u = np.linspace(0, 2, 20)
 
     results = Parallel(
         n_jobs=-1, backend="loky", prefer="processes", batch_size="auto"
-    )(delayed(run_one)(beta, delta) for beta in betas for delta in deltas)
+    )(delayed(transfer)(s_a_val, e_u_val) for s_a_val in s_a for e_u_val in e_u)
+    E, S = map(np.array, zip(*results))
 
-    E_flat, S_flat, R_flat = map(np.array, zip(*results))
-    Z_E = E_flat.reshape(n, n).astype(np.float32)
-    Z_S = S_flat.reshape(n, n).astype(np.float32)
-    Z_ratio = R_flat.reshape(n, n).astype(np.float32)
+    ns = len(s_a)
+    nu = len(e_u)
+
+    E = E.astype(float).reshape(ns, nu)  # rows: s_a (y), cols: e_u (x)
+    S = S.astype(float).reshape(ns, nu)
+
+    thr = 1e5
+    alive_E = E > thr
+    alive_S = S > thr
+
+    both_alive = alive_E & alive_S
+    E_excludes = alive_E & (
+        ~alive_S
+    )  # EcN survives, ST extinct? (depends on who is E/S)
+    S_excludes = (~alive_E) & alive_S
+
+    z = np.full_like(E, np.nan, dtype=float)
+    z[both_alive] = np.log10(E[both_alive] / S[both_alive])
+
+    c_E_excludes = "#E76F51"  # coral
+    c_S_excludes = "#2A9D8F"  # teal
+
+    finite = np.isfinite(z)
+    zmin = float(np.nanmin(z)) if finite.any() else -1
+    zmax = float(np.nanmax(z)) if finite.any() else 1
+
     fig = go.Figure()
+
     fig.add_trace(
-        go.Contour(
-            z=Z_ratio,
-            x=betas,
-            y=betas,
-            contours=dict(showlines=False),
-            colorscale=coolwarm_colorscale,
-            zmin=0,
-            zmax=1,
-            zauto=False,
-            ncontours=50,
-            colorbar=dict(len=0.5, y=0.2, thickness=12),
-            showscale=False,
+        go.Heatmap(
+            x=e_u,
+            y=s_a,
+            z=z,
+            colorscale="Cividis",
+            zmin=zmin,
+            zmax=zmax,
+            hoverongaps=False,
+            colorbar=dict(
+                title="log10(E/S)",
+                title_side="right",
+                tickfont=dict(size=11),
+                y=0.5,
+                len=1,
+                thickness=12,
+            ),
         )
     )
+
+    fig.add_trace(
+        go.Heatmap(
+            x=e_u,
+            y=s_a,
+            z=np.where(E_excludes, 1.0, np.nan),
+            colorscale=[[0, c_E_excludes], [1, c_E_excludes]],
+            showscale=False,
+            hoverongaps=False,
+        )
+    )
+
+    fig.add_trace(
+        go.Heatmap(
+            x=e_u,
+            y=s_a,
+            z=np.where(S_excludes, 1.0, np.nan),
+            colorscale=[[0, c_S_excludes], [1, c_S_excludes]],
+            showscale=False,
+            hoverongaps=False,
+        )
+    )
+
     fig.update_layout(
-        xaxis=dict(title="Death rate EcN (1/h)", ticks="inside"),
-        yaxis=dict(title="Degradation rate ST (1/h)", ticks="inside", showgrid=False),
-        width=180,
+        xaxis=dict(title="Death rate EcN (1/h)", ticks="inside", showgrid=False),
+        yaxis=dict(
+            title="Max. degradation rate ST (1/h)", ticks="inside", showgrid=False
+        ),
+        title="Cf",
+        width=220,
         height=180,
+        plot_bgcolor="white",
+        paper_bgcolor="white",
     )
     fig = style_plot(fig, line_thickness=1.5, font_size=11)
-    fig.write_image("plots/contours/two_sided/sweep_death_vs_degradation.svg")
+    fig.write_image("plots/contours/s_protects_e/sweep_degradation_death_rates.svg")
 
 
-sweep_death_vs_degradation()
+cefotaxime_degradation_rate_sweep()
