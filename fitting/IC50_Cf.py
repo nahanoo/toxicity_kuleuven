@@ -1,8 +1,48 @@
-import numpy as np
 import pandas as pd
-from scipy.optimize import curve_fit
+import numpy as np
 import plotly.graph_objects as go
 from style import *
+from scipy.optimize import curve_fit
+
+concentrations = np.array(
+    [
+        0,
+        0.0015625,
+        0.003125,
+        0.0045875,
+        0.00625,
+        0.015625,
+        0.03125,
+        0.045875,
+        0.0625,
+        0.125,
+        0.25,
+    ]
+)
+strains = [
+    "EcN sfGFP",
+    "EcN tdTomato",
+    "EcN tdTomato CTX",
+    "EcN sfGFP CAT",
+    "ST sfGFP",
+    "ST mCherry",
+    "ST mCherry CTX",
+    "ST sfGFP CAT",
+]
+
+data = {key: [] for key in strains}
+response = {key: [] for key in strains}
+
+repeats = ["Repeat_1", "Repeat_2", "Repeat_3"]
+f = "../data/IC50_cefotaxime/Processed_IC50_data_Cf.xlsx"
+for repeat in repeats:
+    df = pd.read_excel(f, sheet_name=repeat, skiprows=[1], index_col="Strain")
+    for strain in strains:
+        data[strain].append(df.loc[strain].to_numpy())
+        cf_0 = df.loc[strain].iloc[0]
+        inhibition = cf_0 - df.loc[strain].to_numpy()[1:]
+        inhibition = inhibition / cf_0
+        response[strain].append(inhibition)
 
 
 def four_param_logistic(dose, top, bottom, ic50, hill_slope):
@@ -10,14 +50,9 @@ def four_param_logistic(dose, top, bottom, ic50, hill_slope):
     return bottom + (top - bottom) / (1.0 + (ic50 / dose) ** hill_slope)
 
 
-f = "../data/IC50_chloram/20251205_Cm2.xlsx"
-df = pd.read_excel(f, sheet_name="parsing")
-
-concs = df.columns[2:].astype(float).to_numpy()
-
-y_mat = df.iloc[:, 2:].to_numpy(dtype=float)
-mean_response = y_mat.mean(axis=0)
-
+strain = "EcN sfGFP CAT"
+concs = concentrations[1:]  # exclude zero concentration
+mean_response = np.mean(response[strain], axis=0)
 # Initial guess
 top0 = mean_response.max()
 bottom0 = mean_response.min()
@@ -28,8 +63,8 @@ ic50_0 = concs[np.argmin(np.abs(mean_response - half_max))]
 p0 = [top0, bottom0, ic50_0, 1.0]
 
 bounds = (
-    [0.0, 0.0, concs.min() / 10, 0.01],  # lower
-    [120.0, 120.0, concs.max() * 10, 5.0],  # upper
+    [0.5, -0.6, concs.min() / 10, 0.05],  # top_lo, bottom_lo, ic50_lo, hill_lo
+    [1.5, 0.5, concs.max() * 10, 5.0],
 )
 
 params, covariance = curve_fit(
@@ -50,11 +85,11 @@ x_fit = np.logspace(np.log10(concs.min()), np.log10(concs.max()), 400)
 y_fit = four_param_logistic(x_fit, *params)
 
 fig = go.Figure()
-for _, row in df.iterrows():
+for resp in response[strain]:
     fig.add_trace(
         go.Scatter(
             x=concs,
-            y=row.iloc[2:].to_numpy(dtype=float),
+            y=resp,
             mode="markers",
             marker=dict(color="#888578"),
             showlegend=False,
@@ -73,11 +108,11 @@ fig.add_trace(
 )
 
 fig.update_layout(
-    xaxis=dict(title="Chloramphenicol [µg/mL]", type="log", tickformat="E"),
+    xaxis=dict(title="Cefotaxime [µg/mL]", type="log", tickformat="E", tickangle=45),
     yaxis=dict(title="Inhibition [%]"),
     width=250,
     height=200,
-    title="IC50 for chloramphenicol",
+    title="IC50 for cefotaxime",
 )
 fig.add_vline(
     x=ic50,
@@ -96,4 +131,4 @@ fig.add_vline(
     ),
 )
 fig = style_plot(fig, marker_size=6, line_thickness=2, font_size=12)
-fig.write_image("../plots/experiments/chloramphenicol_dose_response_redo.svg")
+fig.write_image("../plots/experiments/cefotaxime_dose_response.svg")
